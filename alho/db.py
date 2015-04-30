@@ -99,6 +99,19 @@ class Database:
             """, edit)
         return edit
 
+    def get_timespans(self, time_from, time_to):
+        for row in self.conn.execute("""
+          select log_id, log_time, location_id, timespan_id, started
+            from timespan as t1
+            where started between ? and ?
+              and not exists(select 1
+                from timespan as t2
+                where t1.timespan_id = t2.timespan_id
+                  and t2.log_time > t1.log_time)
+            order by started
+        """, [time_from, time_to]):
+            yield TimespanEdit(*row)
+
 
 class TimespanEdit(namedtuple('TimespanEdit', ['log_id', 'log_time',
                                                'location_id', 'timespan_id',

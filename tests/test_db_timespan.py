@@ -91,3 +91,40 @@ def test_set_timespan(db, monkeypatch):
     assert edit != creation
     assert db.get_timespan(edit.timespan_id) == edit
     assert list(db.get_timespan_history(edit.timespan_id)) == [creation, edit]
+
+
+def test_get_timespans(db):
+    s1 = db.set_timespan(1, 5)
+    s2 = db.set_timespan(2, 10)
+    s3 = db.set_timespan(3, 7)
+    assert list(db.get_timespans(4, 15)) == [s1, s3, s2]
+    assert list(db.get_timespans(9, 11)) == [s2]
+    assert list(db.get_timespans(0, 8)) == [s1, s3]
+
+
+def test_get_timespans_deleted(db, monkeypatch):
+    t0 = 1001
+    monkeypatch.setattr(time, 'time', lambda: t0)
+    s1 = db.set_timespan(1, 5)
+    s2 = db.set_timespan(2, 10)
+    s3 = db.set_timespan(3, 7)
+    t1 = 1002
+    monkeypatch.setattr(time, 'time', lambda: t1)
+    db.delete_timespan(s3.timespan_id)
+    assert list(db.get_timespans(4, 15)) == [s1, s2]
+    assert list(db.get_timespans(9, 11)) == [s2]
+    assert list(db.get_timespans(0, 8)) == [s1]
+
+
+def test_get_timespans_edited(db, monkeypatch):
+    t0 = 1001
+    monkeypatch.setattr(time, 'time', lambda: t0)
+    s1 = db.set_timespan(1, 5)
+    s2 = db.set_timespan(2, 10)
+    s3 = db.set_timespan(3, 7)
+    t1 = 1002
+    monkeypatch.setattr(time, 'time', lambda: t1)
+    s2 = db.set_timespan(s2.timespan_id, 3)
+    assert list(db.get_timespans(4, 15)) == [s1, s3]
+    assert list(db.get_timespans(9, 11)) == []
+    assert list(db.get_timespans(0, 8)) == [s2, s1, s3]
