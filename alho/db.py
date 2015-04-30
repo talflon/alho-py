@@ -46,7 +46,7 @@ class Database:
         return random.getrandbits(63)  # TODO: full 64-bit signed?
 
     def add_timespan(self):
-        return self.set_timespan(self.rand_id32(), 'now')
+        return self.set_timespan(self.rand_id64(), 'now')
 
     def get_timespan_history(self, timespan_id, time_from=0, time_to=2**32):
         for row in self.conn.execute("""
