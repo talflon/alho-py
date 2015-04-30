@@ -82,19 +82,7 @@ class Database:
         return TimespanEdit(*row) if row is not None else None
 
     def delete_timespan(self, timespan_id):
-        edit = TimespanEdit(
-            log_id=self.rand_id64(),
-            log_time=int(time.time()),
-            location_id=self.location_id,
-            timespan_id=timespan_id,
-            started=None)
-        with self.conn:
-            self.conn.execute("""
-              insert into timespan
-                (log_id, log_time, location_id, timespan_id, started)
-                values (?, ?, ?, ?, ?)
-            """, edit)
-        return edit
+        return self.set_timespan(timespan_id, None)
 
     def set_timespan(self, timespan_id, started):
         edit = TimespanEdit(
