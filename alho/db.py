@@ -71,6 +71,16 @@ class Database:
         """, [timespan_id, time_from, time_to]):
             yield TimespanEdit(*row)
 
+    def get_timespan(self, timespan_id):
+        cursor = self.conn.execute("""
+          select log_id, log_time, location_id, timespan_id, started
+            from timespan
+            where timespan_id = ?
+            order by log_time desc limit 1
+        """, [timespan_id])
+        row = cursor.fetchone()
+        return TimespanEdit(*row) if row is not None else None
+
     def delete_timespan(self, timespan_id):
         edit = TimespanEdit(
             log_id=self.rand_id64(),

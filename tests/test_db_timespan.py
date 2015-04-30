@@ -61,3 +61,18 @@ def test_timespan_edit_equality():
     assert edit != TimespanEdit(1, 2, 33, 4, 5)
     assert edit != TimespanEdit(1, 2, 3, 8, 5)
     assert edit != TimespanEdit(1, 2, 3, 4, 500)
+
+
+def test_get_timespan(db):
+    edit = db.add_timespan()
+    assert db.get_timespan(edit.timespan_id) == edit
+
+
+def test_get_timespan_deleted(db, monkeypatch):
+    t0 = 1001
+    monkeypatch.setattr(time, 'time', lambda: t0)
+    edit = db.add_timespan()
+    t1 = 1002
+    monkeypatch.setattr(time, 'time', lambda: t1)
+    deletion = db.delete_timespan(edit.timespan_id)
+    assert db.get_timespan(edit.timespan_id) == deletion
