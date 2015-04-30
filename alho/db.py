@@ -96,6 +96,21 @@ class Database:
             """, edit)
         return edit
 
+    def set_timespan(self, timespan_id, started):
+        edit = TimespanEdit(
+            log_id=self.rand_id64(),
+            log_time=int(time.time()),
+            location_id=self.location_id,
+            timespan_id=timespan_id,
+            started=started)
+        with self.conn:
+            self.conn.execute("""
+              insert into timespan
+                (log_id, log_time, location_id, timespan_id, started)
+                values (?, ?, ?, ?, ?)
+            """, edit)
+        return edit
+
 
 class TimespanEdit(namedtuple('TimespanEdit', ['log_id', 'log_time',
                                                'location_id', 'timespan_id',
