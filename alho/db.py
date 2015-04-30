@@ -46,20 +46,7 @@ class Database:
         return random.getrandbits(63)  # TODO: full 64-bit signed?
 
     def add_timespan(self):
-        now = int(time.time())
-        edit = TimespanEdit(
-            log_id=self.rand_id64(),
-            log_time=now,
-            location_id=self.location_id,
-            timespan_id=self.rand_id32(),
-            started=now)
-        with self.conn:
-            self.conn.execute("""
-              insert into timespan
-                (log_id, log_time, location_id, timespan_id, started)
-                values (?, ?, ?, ?, ?)
-            """, edit)
-        return edit
+        return self.set_timespan(self.rand_id32(), 'now')
 
     def get_timespan_history(self, timespan_id, time_from=0, time_to=2**32):
         for row in self.conn.execute("""
@@ -85,9 +72,12 @@ class Database:
         return self.set_timespan(timespan_id, None)
 
     def set_timespan(self, timespan_id, started):
+        now = int(time.time())
+        if started == 'now':
+            started = now
         edit = TimespanEdit(
             log_id=self.rand_id64(),
-            log_time=int(time.time()),
+            log_time=now,
             location_id=self.location_id,
             timespan_id=timespan_id,
             started=started)
