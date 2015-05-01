@@ -14,9 +14,34 @@ def db():
     return Database(conn, 12345)
 
 
-def test_add_span(db, monkeypatch):
-    now = 99999
-    monkeypatch.setattr(time, 'time', lambda: now)
+class FakeTime:
+
+    def __init__(self, start, inc=0):
+        self.value = start
+        self.inc = inc
+
+    def __call__(self):
+        result = self.value
+        self.value += self.inc
+        return result
+
+
+@pytest.fixture
+def fake_time(monkeypatch):
+    fake = FakeTime(8765.309)
+    monkeypatch.setattr(time, 'time', fake)
+    return fake
+
+
+@pytest.fixture(params=[0, 1.23])
+def fake_times(request, monkeypatch):
+    fake = FakeTime(1234.56, inc=request.param)
+    monkeypatch.setattr(time, 'time', fake)
+    return fake
+
+
+def test_add_span(db, fake_time):
+    now = int(fake_time.value)
     edit = db.add_span()
     assert edit.started == now
     assert edit.edited.time == now
@@ -25,10 +50,9 @@ def test_add_span(db, monkeypatch):
     assert edit.edited.ctr is not None
 
 
-def test_delete_span(db, monkeypatch):
-    now = 99999
-    monkeypatch.setattr(time, 'time', lambda: now)
+def test_delete_span(db, fake_times):
     edit0 = db.add_span()
+    now = int(fake_times.value)
     edit1 = db.delete_span(edit0.span_id)
     assert edit1.started is None
     assert edit1.edited.time == now
@@ -37,48 +61,36 @@ def test_delete_span(db, monkeypatch):
     assert edit1.edited != edit0.edited
 
 
-def test_add_delete_span_history(db, monkeypatch):
-    t0 = 1001
-    monkeypatch.setattr(time, 'time', lambda: t0)
+def test_add_delete_span_history(db, fake_times):
     creation = db.add_span()
-    t1 = 1005
-    monkeypatch.setattr(time, 'time', lambda: t1)
     deletion = db.delete_span(creation.span_id)
     history = db.get_span_history(creation.span_id)
     assert list(history) == [creation, deletion]
 
 
-def test_get_span_history_unknown(db):
+def test_get_span_history_unknown(db, fake_time):
     span_id = db.add_span().span_id
     assert list(db.get_span_history(span_id + 3)) == []
 
 
-def test_get_span(db):
+def test_get_span(db, fake_time):
     edit = db.add_span()
     assert db.get_span(edit.span_id) == edit
 
 
-def test_get_span_deleted(db, monkeypatch):
-    t0 = 1001
-    monkeypatch.setattr(time, 'time', lambda: t0)
+def test_get_span_deleted(db, fake_times):
     edit = db.add_span()
-    t1 = 1002
-    monkeypatch.setattr(time, 'time', lambda: t1)
     deletion = db.delete_span(edit.span_id)
     assert db.get_span(edit.span_id) == deletion
 
 
-def test_get_span_unknown(db):
+def test_get_span_unknown(db, fake_time):
     span_id = db.add_span().span_id
     assert db.get_span(span_id + 3) is None
 
 
-def test_set_span(db, monkeypatch):
-    t0 = 1001
-    monkeypatch.setattr(time, 'time', lambda: t0)
+def test_set_span(db, fake_times):
     creation = db.add_span()
-    t1 = 1002
-    monkeypatch.setattr(time, 'time', lambda: t1)
     started = 3333
     edit = db.set_span(creation.span_id, started)
     assert edit.started == started
@@ -88,7 +100,7 @@ def test_set_span(db, monkeypatch):
     assert list(db.get_span_history(edit.span_id)) == [creation, edit]
 
 
-def test_get_spans(db):
+def test_get_spans(db, fake_times):
     s1 = db.set_span(1, 5)
     s2 = db.set_span(2, 10)
     s3 = db.set_span(3, 7)
@@ -97,28 +109,20 @@ def test_get_spans(db):
     assert list(db.get_spans(0, 8)) == [s1, s3]
 
 
-def test_get_spans_deleted(db, monkeypatch):
-    t0 = 1001
-    monkeypatch.setattr(time, 'time', lambda: t0)
+def test_get_spans_deleted(db, fake_times):
     s1 = db.set_span(1, 5)
     s2 = db.set_span(2, 10)
     s3 = db.set_span(3, 7)
-    t1 = 1002
-    monkeypatch.setattr(time, 'time', lambda: t1)
     db.delete_span(s3.span_id)
     assert list(db.get_spans(4, 15)) == [s1, s2]
     assert list(db.get_spans(9, 11)) == [s2]
     assert list(db.get_spans(0, 8)) == [s1]
 
 
-def test_get_spans_edited(db, monkeypatch):
-    t0 = 1001
-    monkeypatch.setattr(time, 'time', lambda: t0)
+def test_get_spans_edited(db, fake_times):
     s1 = db.set_span(1, 5)
     s2 = db.set_span(2, 10)
     s3 = db.set_span(3, 7)
-    t1 = 1002
-    monkeypatch.setattr(time, 'time', lambda: t1)
     s2 = db.set_span(s2.span_id, 3)
     assert list(db.get_spans(4, 15)) == [s1, s3]
     assert list(db.get_spans(9, 11)) == []
@@ -150,7 +154,7 @@ def test_timestamp_int(stamp):
     assert TimeStamp.from_int(stamp.as_int) == stamp
 
 
-def test_get_last_span(db):
+def test_get_last_span(db, fake_times):
     assert db.get_last_span() is None
     s1 = db.set_span(1, 10)
     assert db.get_last_span() == s1
@@ -160,7 +164,7 @@ def test_get_last_span(db):
     assert db.get_last_span() == s2
 
 
-def test_get_last_span_edited(db):
+def test_get_last_span_edited(db, fake_times):
     assert db.get_last_span() is None
     s1 = db.set_span(1, 10)
     assert db.get_last_span() == s1
@@ -170,7 +174,7 @@ def test_get_last_span_edited(db):
     assert db.get_last_span() == s1
 
 
-def test_get_last_span_deleted(db):
+def test_get_last_span_deleted(db, fake_times):
     assert db.get_last_span() is None
     s1 = db.set_span(1, 10)
     assert db.get_last_span() == s1
@@ -180,7 +184,7 @@ def test_get_last_span_deleted(db):
     assert db.get_last_span() == s1
 
 
-def test_get_tag_after_add(db):
+def test_get_tag_after_add(db, fake_times):
     span = db.add_span()
     assert set(db.get_tags(span.span_id)) == set()
     db.add_tag(span.span_id, 'x')
@@ -189,7 +193,7 @@ def test_get_tag_after_add(db):
     assert set(db.get_tags(span.span_id)) == {'x', 'y'}
 
 
-def test_get_tag_after_remove(db):
+def test_get_tag_after_remove(db, fake_times):
     span = db.add_span()
     db.add_tag(span.span_id, 'a')
     db.add_tag(span.span_id, 'b')
@@ -202,7 +206,7 @@ def test_get_tag_after_remove(db):
     assert set(db.get_tags(span.span_id)) == set()
 
 
-def test_add_tag(db):
+def test_add_tag(db, fake_times):
     span = db.add_span()
     edit = db.add_tag(span.span_id, 'a')
     assert edit.span_id == span.span_id
@@ -210,7 +214,7 @@ def test_add_tag(db):
     assert edit.active
 
 
-def test_remove_tag(db):
+def test_remove_tag(db, fake_times):
     span = db.add_span()
     db.add_tag(span.span_id, 'a')
     edit = db.remove_tag(span.span_id, 'a')
@@ -219,7 +223,7 @@ def test_remove_tag(db):
     assert not edit.active
 
 
-def test_tag_history(db):
+def test_tag_history(db, fake_times):
     span = db.add_span()
     assert list(db.get_tag_history(span.span_id)) == []
     edit0 = db.add_tag(span.span_id, 'x')
