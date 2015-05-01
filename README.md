@@ -1,5 +1,5 @@
 # alho-py
-Python GTK+3 interface to Alho personal time-tracking system.
+Python GTK+ 3 interface to Alho personal time-tracking system.
 
 Current goals include:
  - tag-based categorization of how time is spent
@@ -9,4 +9,5 @@ Current goals include:
  - getting it functional enough quickly, to go do more important work!
 
 Possible future goals include:
+ - adding notes/comments
  - supporting multiple users
