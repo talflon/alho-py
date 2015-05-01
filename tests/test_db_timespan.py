@@ -68,6 +68,11 @@ def test_get_timespan_deleted(db, monkeypatch):
     assert db.get_timespan(edit.timespan_id) == deletion
 
 
+def test_get_timespan_unknown(db):
+    timespan_id = db.add_timespan().timespan_id
+    assert db.get_timespan(timespan_id + 3) is None
+
+
 def test_set_timespan(db, monkeypatch):
     t0 = 1001
     monkeypatch.setattr(time, 'time', lambda: t0)
