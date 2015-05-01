@@ -190,7 +190,7 @@ class TimeStamp(namedtuple('TimeStamp', ['time', 'loc', 'ctr'])):
     @classmethod
     def from_int(cls, i):
         loc = (i >> 16) & 0xffff
-        if loc > 0x8000:
+        if loc >= 0x8000:
             loc -= 0x10000
         return cls((i >> 32) & 0xffffffff, loc, i & 0xffff)
 
