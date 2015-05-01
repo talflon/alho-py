@@ -1,8 +1,7 @@
+import itertools
 import time
 
 import pytest
-
-from alho.db import TimeStamp
 
 
 @pytest.fixture
@@ -129,28 +128,24 @@ def test_get_spans_edited(db, fake_times):
     assert list(db.get_spans(0, 8)) == [s2, s1, s3]
 
 
-@pytest.mark.parametrize('stamp', [
-    TimeStamp(12345, 22222, 0),
-    TimeStamp(12345, 22222, 1),
-    TimeStamp(12345, 22222, 32800),
-    TimeStamp(12345, 22222, 65535),
-])
-def test_timestamp_next(stamp):
+@pytest.mark.parametrize(
+    'params', itertools.product([12345, 2**31-2],
+                                [22222, 0, -1, 32767, -32768],
+                                [0, 1, 32800, 65535]))
+def test_timestamp_next(params):
+    from alho.db import TimeStamp
+    stamp = TimeStamp(*params)
     assert stamp.next > stamp
     assert stamp.next.loc == stamp.loc
 
 
-@pytest.mark.parametrize('stamp', [
-    TimeStamp(12345, 22222, 0),
-    TimeStamp(12345, 22222, 1),
-    TimeStamp(12345, 22222, 32800),
-    TimeStamp(12345, 22222, 65500),
-    TimeStamp(12345, -12345, 0),
-    TimeStamp(12345, -12345, 1),
-    TimeStamp(12345, -12345, 32800),
-    TimeStamp(12345, -12345, 65500),
-])
-def test_timestamp_int(stamp):
+@pytest.mark.parametrize(
+    'params', itertools.product([12345, 2**31-2],
+                                [22222, 0, -1, 32767, -32768],
+                                [0, 1, 32800, 65535]))
+def test_timestamp_int(params):
+    from alho.db import TimeStamp
+    stamp = TimeStamp(*params)
     assert TimeStamp.from_int(stamp.as_int) == stamp
 
 
