@@ -178,3 +178,25 @@ def test_get_last_timespan_deleted(db):
     assert db.get_last_timespan() == s2
     db.delete_timespan(s2.timespan_id)
     assert db.get_last_timespan() == s1
+
+
+def test_add_tag(db):
+    span = db.add_timespan()
+    assert set(db.get_tags(span.timespan_id)) == set()
+    db.add_tag(span.timespan_id, 'x')
+    assert set(db.get_tags(span.timespan_id)) == {'x'}
+    db.add_tag(span.timespan_id, 'y')
+    assert set(db.get_tags(span.timespan_id)) == {'x', 'y'}
+
+
+def test_remove_tag(db):
+    span = db.add_timespan()
+    db.add_tag(span.timespan_id, 'a')
+    db.add_tag(span.timespan_id, 'b')
+    db.add_tag(span.timespan_id, 'c')
+    db.remove_tag(span.timespan_id, 'b')
+    assert set(db.get_tags(span.timespan_id)) == {'a', 'c'}
+    db.remove_tag(span.timespan_id, 'a')
+    assert set(db.get_tags(span.timespan_id)) == {'c'}
+    db.remove_tag(span.timespan_id, 'c')
+    assert set(db.get_tags(span.timespan_id)) == set()

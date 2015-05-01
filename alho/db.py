@@ -27,7 +27,16 @@ def create_tables(conn):
             edit_loc int not null,
             timespan_id int not null,
             started int
-          );
+          )
+        """)
+        conn.execute("""
+          create table timespan_tag (
+            edit_time integer primary key not null,
+            edit_loc int not null,
+            timespan_id int not null,
+            name text not null,
+            active int not null
+          )
         """)
 
 
@@ -79,15 +88,15 @@ class Database:
     def delete_timespan(self, timespan_id):
         return self.set_timespan(timespan_id, None)
 
-    def get_next_timespan_timestamp(self, when):
+    def get_next_timestamp(self, table, when):
         start = TimeStamp(when, self.location_id, 0)
         start_int = start.as_int
         last_int = self.conn.execute("""
           select max(edit_time)
-            from timespan
+            from {}
             where edit_time >= ?
               and edit_time < ? + 0xffff
-        """, [start_int, start_int]).fetchone()[0]
+        """.format(table), [start_int, start_int]).fetchone()[0]
         if last_int is None:
             return start
         else:
@@ -97,7 +106,7 @@ class Database:
         now = int(time.time())
         if started == 'now':
             started = now
-        edited = self.get_next_timespan_timestamp(now)
+        edited = self.get_next_timestamp('timespan', now)
         if timespan_id == 'new':
             timespan_id = edited.as_int
         edit = TimespanEdit(
@@ -124,6 +133,40 @@ class Database:
             order by started, edit_time
         """.format(TimespanEdit.COLUMNS), [time_from, time_to]):
             yield TimespanEdit.from_row(row)
+
+    def add_tag(self, timespan_id, name):
+        return self.set_tag(timespan_id, name, 1)
+
+    def remove_tag(self, timespan_id, name):
+        return self.set_tag(timespan_id, name, 0)
+
+    def set_tag(self, timespan_id, name, active):
+        edited = self.get_next_timestamp('timespan_tag', int(time.time()))
+        edit = TagEdit(edited=edited,
+                       timespan_id=timespan_id,
+                       name=name,
+                       active=active)
+        with self.conn:
+            self.conn.execute("""
+              insert into timespan_tag
+                ({})
+                values (?, ?, ?, ?, ?)
+            """.format(TagEdit.COLUMNS), edit.as_row)
+        return edit
+
+    def get_tags(self, timespan_id):
+        cursor = self.conn.execute("""
+          select name
+            from timespan_tag as t1
+            where timespan_id = ?
+              and active
+              and not exists(select 1
+                from timespan_tag as t2
+                where t2.timespan_id = t1.timespan_id
+                  and t2.name = t1.name
+                  and t2.edit_time > t1.edit_time)
+        """, [timespan_id])
+        return set(row[0] for row in cursor)
 
 
 class TimeStamp(namedtuple('TimeStamp', ['time', 'loc', 'ctr'])):
@@ -158,3 +201,17 @@ class TimespanEdit(namedtuple('TimespanEdit', ['edited', 'timespan_id',
     def as_row(self):
         return (self.edited.as_int, self.edited.loc,
                 self.timespan_id, self.started)
+
+
+class TagEdit(namedtuple('TagEdit', ['edited','timespan_id','name','active'])):
+
+    COLUMNS = 'edit_time, edit_loc, timespan_id, name, active'
+
+    @classmethod
+    def from_row(cls, row):
+        return cls(TimeStamp.from_int(row[0]), *row[2:])
+
+    @property
+    def as_row(self):
+        return (self.edited.as_int, self.edited.loc,
+                self.timespan_id, self.name, self.active)
