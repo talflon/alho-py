@@ -62,6 +62,20 @@ class Database:
         row = cursor.fetchone()
         return TimespanEdit.from_row(row) if row is not None else None
 
+    def get_last_timespan(self):
+        cursor = self.conn.execute("""
+          select {}
+            from timespan as t1
+            where not exists(select 1
+                from timespan as t2
+                where t1.timespan_id = t2.timespan_id
+                  and t2.edit_time > t1.edit_time)
+            order by started desc, edit_time desc
+            limit 1
+        """.format(TimespanEdit.COLUMNS))
+        row = cursor.fetchone()
+        return TimespanEdit.from_row(row) if row is not None else None
+
     def delete_timespan(self, timespan_id):
         return self.set_timespan(timespan_id, None)
 

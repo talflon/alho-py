@@ -148,3 +148,33 @@ def test_timestamp_next(stamp):
 ])
 def test_timestamp_int(stamp):
     assert TimeStamp.from_int(stamp.as_int) == stamp
+
+
+def test_get_last_timespan(db):
+    assert db.get_last_timespan() is None
+    s1 = db.set_timespan(1, 10)
+    assert db.get_last_timespan() == s1
+    s2 = db.set_timespan(2, 50)
+    assert db.get_last_timespan() == s2
+    s3 = db.set_timespan(3, 25)
+    assert db.get_last_timespan() == s2
+
+
+def test_get_last_timespan_edited(db):
+    assert db.get_last_timespan() is None
+    s1 = db.set_timespan(1, 10)
+    assert db.get_last_timespan() == s1
+    s2 = db.set_timespan(2, 50)
+    assert db.get_last_timespan() == s2
+    s1 = db.set_timespan(s1.timespan_id, 100)
+    assert db.get_last_timespan() == s1
+
+
+def test_get_last_timespan_deleted(db):
+    assert db.get_last_timespan() is None
+    s1 = db.set_timespan(1, 10)
+    assert db.get_last_timespan() == s1
+    s2 = db.set_timespan(2, 50)
+    assert db.get_last_timespan() == s2
+    db.delete_timespan(s2.timespan_id)
+    assert db.get_last_timespan() == s1
