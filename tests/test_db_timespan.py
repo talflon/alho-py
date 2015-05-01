@@ -180,7 +180,7 @@ def test_get_last_span_deleted(db):
     assert db.get_last_span() == s1
 
 
-def test_add_tag(db):
+def test_get_tag_after_add(db):
     span = db.add_span()
     assert set(db.get_tags(span.span_id)) == set()
     db.add_tag(span.span_id, 'x')
@@ -189,7 +189,7 @@ def test_add_tag(db):
     assert set(db.get_tags(span.span_id)) == {'x', 'y'}
 
 
-def test_remove_tag(db):
+def test_get_tag_after_remove(db):
     span = db.add_span()
     db.add_tag(span.span_id, 'a')
     db.add_tag(span.span_id, 'b')
@@ -200,3 +200,31 @@ def test_remove_tag(db):
     assert set(db.get_tags(span.span_id)) == {'c'}
     db.remove_tag(span.span_id, 'c')
     assert set(db.get_tags(span.span_id)) == set()
+
+
+def test_add_tag(db):
+    span = db.add_span()
+    edit = db.add_tag(span.span_id, 'a')
+    assert edit.span_id == span.span_id
+    assert edit.name == 'a'
+    assert edit.active
+
+
+def test_remove_tag(db):
+    span = db.add_span()
+    db.add_tag(span.span_id, 'a')
+    edit = db.remove_tag(span.span_id, 'a')
+    assert edit.span_id == span.span_id
+    assert edit.name == 'a'
+    assert not edit.active
+
+
+def test_tag_history(db):
+    span = db.add_span()
+    assert list(db.get_tag_history(span.span_id)) == []
+    edit0 = db.add_tag(span.span_id, 'x')
+    assert list(db.get_tag_history(span.span_id)) == [edit0]
+    edit1 = db.add_tag(span.span_id, 'y')
+    assert list(db.get_tag_history(span.span_id)) == [edit0, edit1]
+    edit2 = db.remove_tag(span.span_id, 'x')
+    assert list(db.get_tag_history(span.span_id)) == [edit0, edit1, edit2]

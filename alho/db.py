@@ -168,6 +168,18 @@ class Database:
         """, [span_id])
         return set(row[0] for row in cursor)
 
+    def get_tag_history(self, span_id, time_from=0, time_to=(2**31) - 1):
+        for row in self.conn.execute("""
+          select {}
+            from span_tag
+            where span_id = ?
+              and edit_time >= ?
+              and edit_time < ?
+            order by edit_time
+        """.format(TagEdit.COLUMNS), [span_id,
+                                      time_from << 32, time_to << 32]):
+            yield TagEdit.from_row(row)
+
 
 class TimeStamp(namedtuple('TimeStamp', ['time', 'loc', 'ctr'])):
 
