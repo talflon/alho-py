@@ -2,6 +2,8 @@ import time
 
 import pytest
 
+from alho.db import TimeStamp
+
 
 @pytest.fixture
 def db():
@@ -116,3 +118,28 @@ def test_get_timespans_edited(db, monkeypatch):
     assert list(db.get_timespans(4, 15)) == [s1, s3]
     assert list(db.get_timespans(9, 11)) == []
     assert list(db.get_timespans(0, 8)) == [s2, s1, s3]
+
+
+@pytest.mark.parametrize('stamp', [
+    TimeStamp(12345, 22222, 0),
+    TimeStamp(12345, 22222, 1),
+    TimeStamp(12345, 22222, 32800),
+    TimeStamp(12345, 22222, 65535),
+])
+def test_timestamp_next(stamp):
+    assert stamp.next > stamp
+    assert stamp.next.loc == stamp.loc
+
+
+@pytest.mark.parametrize('stamp', [
+    TimeStamp(12345, 22222, 0),
+    TimeStamp(12345, 22222, 1),
+    TimeStamp(12345, 22222, 32800),
+    TimeStamp(12345, 22222, 65500),
+    TimeStamp(12345, -12345, 0),
+    TimeStamp(12345, -12345, 1),
+    TimeStamp(12345, -12345, 32800),
+    TimeStamp(12345, -12345, 65500),
+])
+def test_timestamp_int(stamp):
+    assert TimeStamp.from_int(stamp.as_int) == stamp

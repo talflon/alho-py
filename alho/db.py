@@ -24,12 +24,10 @@ def create_tables(conn):
     with conn:
         conn.execute("""
           create table timespan (
-            edit_time int not null,
+            edit_time integer primary key not null,
             edit_loc int not null,
-            edit_ctr int not null,
             timespan_id int not null,
-            started int,
-            primary key (edit_time, edit_loc, edit_ctr)
+            started int
           );
         """)
 
@@ -49,14 +47,16 @@ class Database:
     def add_timespan(self):
         return self.set_timespan(self.rand_id64(), 'now')
 
-    def get_timespan_history(self, timespan_id, time_from=0, time_to=2**32):
+    def get_timespan_history(self, timespan_id, time_from=0, time_to=(2**31)-1):
         for row in self.conn.execute("""
           select {}
             from timespan
             where timespan_id = ?
-              and edit_time between ? and ?
-            order by edit_time, edit_loc, edit_ctr
-        """.format(TimespanEdit.COLUMNS), [timespan_id, time_from, time_to]):
+              and edit_time >= ?
+              and edit_time < ?
+            order by edit_time
+        """.format(TimespanEdit.COLUMNS), [timespan_id,
+                                           time_from << 32, time_to << 32]):
             yield TimespanEdit.from_row(row)
 
     def get_timespan(self, timespan_id):
@@ -64,7 +64,7 @@ class Database:
           select {}
             from timespan
             where timespan_id = ?
-            order by edit_time desc, edit_loc desc, edit_ctr desc limit 1
+            order by edit_time desc limit 1
         """.format(TimespanEdit.COLUMNS), [timespan_id])
         row = cursor.fetchone()
         return TimespanEdit.from_row(row) if row is not None else None
@@ -73,13 +73,18 @@ class Database:
         return self.set_timespan(timespan_id, None)
 
     def get_next_timespan_timestamp(self, when):
-        counter = self.conn.execute("""
-          select coalesce(max(edit_ctr) + 1, 0)
+        start = TimeStamp(when, self.location_id, 0)
+        start_int = start.as_int
+        last_int = self.conn.execute("""
+          select max(edit_time)
             from timespan
-            where edit_loc = ?
-              and edit_time = ?
-        """, [self.location_id, when]).fetchone()[0]
-        return TimeStamp(when, self.location_id, counter)
+            where edit_time >= ?
+              and edit_time < ? + 0xffff
+        """, [start_int, start_int]).fetchone()[0]
+        if last_int is None:
+            return start
+        else:
+            return TimeStamp.from_int(last_int).next
 
     def set_timespan(self, timespan_id, started):
         now = int(time.time())
@@ -93,8 +98,8 @@ class Database:
             self.conn.execute("""
               insert into timespan
                 ({})
-                values (?, ?, ?, ?, ?)
-            """.format(TimespanEdit.COLUMNS), edit.to_row())
+                values (?, ?, ?, ?)
+            """.format(TimespanEdit.COLUMNS), edit.as_row)
         return edit
 
     def get_timespans(self, time_from, time_to):
@@ -105,28 +110,41 @@ class Database:
               and not exists(select 1
                 from timespan as t2
                 where t1.timespan_id = t2.timespan_id
-                  and (t2.edit_time > t1.edit_time
-                       or (t2.edit_time = t1.edit_time
-                           and (t2.edit_loc > t1.edit_loc
-                                or (t2.edit_loc = t1.edit_loc
-                                    and t2.edit_ctr > t2.edit_ctr)))))
-            order by started, edit_time, edit_loc, edit_ctr
+                  and t2.edit_time > t1.edit_time)
+            order by started, edit_time
         """.format(TimespanEdit.COLUMNS), [time_from, time_to]):
             yield TimespanEdit.from_row(row)
 
 
-TimeStamp = namedtuple('TimeStamp', ['time', 'loc', 'ctr'])
-TimeStamp.COLUMNS = ','.join(TimeStamp._fields)
+class TimeStamp(namedtuple('TimeStamp', ['time', 'loc', 'ctr'])):
+
+    @property
+    def as_int(self):
+        return self.time << 32 | (self.loc & 0xffff) << 16 | self.ctr
+
+    @classmethod
+    def from_int(cls, i):
+        loc = (i >> 16) & 0xffff
+        if loc > 0x8000:
+            loc -= 0x10000
+        return cls((i >> 32) & 0xffffffff, loc, i & 0xffff)
+
+    @property
+    def next(self):
+        if self.ctr == 0xffff:
+            return self._replace(time=self.time + 1, ctr=0)
+        return self._replace(ctr=self.ctr + 1)
 
 
 class TimespanEdit(namedtuple('TimespanEdit', ['edited', 'timespan_id',
                                                'started'])):
-    COLUMNS = ','.join(['edit_' + c for c in TimeStamp.COLUMNS.split(',')] +
-                       ['timespan_id', 'started'])
+    COLUMNS = 'edit_time, edit_loc, timespan_id, started'
 
     @classmethod
     def from_row(cls, row):
-        return cls(TimeStamp(*row[:3]), *row[3:])
+        return cls(TimeStamp.from_int(row[0]), *row[2:])
 
-    def to_row(self):
-        return tuple(list(self.edited) + list(self)[1:])
+    @property
+    def as_row(self):
+        return (self.edited.as_int, self.edited.loc,
+                self.timespan_id, self.started)
