@@ -16,7 +16,6 @@
 
 
 import time
-import random
 from collections import namedtuple
 
 
@@ -38,14 +37,8 @@ class Database:
         self.conn = conn
         self.location_id = location_id
 
-    def rand_id32(self):
-        return random.getrandbits(31)  # TODO: full 32-bit signed?
-
-    def rand_id64(self):
-        return random.getrandbits(63)  # TODO: full 64-bit signed?
-
     def add_timespan(self):
-        return self.set_timespan(self.rand_id64(), 'now')
+        return self.set_timespan('new', 'now')
 
     def get_timespan_history(self, timespan_id, time_from=0, time_to=(2**31)-1):
         for row in self.conn.execute("""
@@ -90,8 +83,11 @@ class Database:
         now = int(time.time())
         if started == 'now':
             started = now
+        edited = self.get_next_timespan_timestamp(now)
+        if timespan_id == 'new':
+            timespan_id = edited.as_int
         edit = TimespanEdit(
-            edited=self.get_next_timespan_timestamp(now),
+            edited=edited,
             timespan_id=timespan_id,
             started=started)
         with self.conn:
