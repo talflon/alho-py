@@ -17,10 +17,10 @@ def test_add_timespan(db, monkeypatch):
     monkeypatch.setattr(time, 'time', lambda: now)
     edit = db.add_timespan()
     assert edit.started == now
-    assert edit.log_time == now
-    assert edit.location_id == db.location_id
+    assert edit.edited.time == now
+    assert edit.edited.loc == db.location_id
     assert edit.timespan_id is not None
-    assert edit.log_id is not None
+    assert edit.edited.ctr is not None
 
 
 def test_delete_timespan(db, monkeypatch):
@@ -29,11 +29,10 @@ def test_delete_timespan(db, monkeypatch):
     edit0 = db.add_timespan()
     edit1 = db.delete_timespan(edit0.timespan_id)
     assert edit1.started is None
-    assert edit1.log_time == now
-    assert edit1.location_id == db.location_id
+    assert edit1.edited.time == now
+    assert edit1.edited.loc == db.location_id
     assert edit1.timespan_id == edit0.timespan_id
-    assert edit1.log_id is not None
-    assert edit1.log_id != edit0.log_id
+    assert edit1.edited != edit0.edited
 
 
 def test_add_delete_timespan_history(db, monkeypatch):
@@ -50,17 +49,6 @@ def test_add_delete_timespan_history(db, monkeypatch):
 def test_get_timespan_history_unknown(db):
     timespan_id = db.add_timespan().timespan_id
     assert list(db.get_timespan_history(timespan_id + 3)) == []
-
-
-def test_timespan_edit_equality():
-    from alho.db import TimespanEdit
-    edit = TimespanEdit(1, 2, 3, 4, 5)
-    assert edit == TimespanEdit(1, 2, 3, 4, 5)
-    assert edit != TimespanEdit(10, 2, 3, 4, 5)
-    assert edit != TimespanEdit(1, 5, 3, 4, 5)
-    assert edit != TimespanEdit(1, 2, 33, 4, 5)
-    assert edit != TimespanEdit(1, 2, 3, 8, 5)
-    assert edit != TimespanEdit(1, 2, 3, 4, 500)
 
 
 def test_get_timespan(db):
