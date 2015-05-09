@@ -1,5 +1,25 @@
+import re
 import tkinter as tk
 from tkinter.ttk import Button, Entry, Frame
+
+
+TAG_STR_SPLIT_REGEX = re.compile(r'[\s;,]+')
+TAG_NAME_REGEX = re.compile(r'^[-\w.&?!]+$')
+
+
+def tag_str_to_set(tag_str):
+    tag_set = set()
+    for name in TAG_STR_SPLIT_REGEX.split(tag_str.lower()):
+        if name:
+            if TAG_NAME_REGEX.match(name):
+                tag_set.add(name)
+            else:
+                raise ValueError('Invalid tag name: %r' % name)
+    return tag_set
+
+
+def tag_set_to_str(tag_set):
+    return ', '.join(sorted(tag_set))
 
 
 class SpanWidget:

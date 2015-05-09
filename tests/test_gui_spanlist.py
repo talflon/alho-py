@@ -31,6 +31,44 @@ def span_list(mock_db):
     return span_list
 
 
+def test_tag_set_to_str():
+    from alho.gui import tag_set_to_str
+    assert tag_set_to_str([]) == ''
+    assert tag_set_to_str(['def', 'abc', 'hij']) == 'abc, def, hij'
+    assert tag_set_to_str({'a1', 'a2', 'b3', 'b1'}) == 'a1, a2, b1, b3'
+    assert tag_set_to_str(iter(['xyz'])) == 'xyz'
+
+
+def test_tag_str_to_set_normal():
+    from alho.gui import tag_str_to_set
+    assert tag_str_to_set('') == set()
+    assert tag_str_to_set('ab, cb, q') == {'ab', 'cb', 'q'}
+    assert tag_str_to_set('blah') == {'blah'}
+
+
+def test_tag_str_to_set_different_spaces():
+    from alho.gui import tag_str_to_set
+    assert tag_str_to_set('  \n ') == set()
+    assert tag_str_to_set(' , , \t, ') == set()
+    assert tag_str_to_set('ab cb    q') == {'ab', 'cb', 'q'}
+    assert tag_str_to_set('\nblah  ,') == {'blah'}
+    assert tag_str_to_set('a,,,b,,,,,e,d c') == {'a', 'b', 'c', 'd', 'e'}
+    assert tag_str_to_set('one; two;three') == {'one', 'two', 'three'}
+
+
+def test_tag_str_to_set_upper():
+    from alho.gui import tag_str_to_set
+    assert tag_str_to_set('Ab, cB, QWERTY') == {'ab', 'cb', 'qwerty'}
+    assert tag_str_to_set('BLah') == {'blah'}
+
+
+@pytest.mark.parametrize('tag_str', ['[stuff]', 'if 1+2=3 then'])
+def test_tag_str_to_set_invalid(tag_str):
+    from alho.gui import tag_str_to_set
+    with pytest.raises(ValueError):
+        tag_str_to_set(tag_str)
+
+
 def test_switch_no_tags(span_list):
     from alho.db import SpanEdit, TimeStamp
     t = 10000
