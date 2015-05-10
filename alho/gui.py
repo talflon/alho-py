@@ -30,6 +30,7 @@ class EditableField:
         self.widget = self.entry = Entry(master, textvariable=self.edited_var)
         self._external_value = value
         self.editable = editable
+        self.edited_var.trace('w', self.on_edited_change)
 
     @property
     def editable(self):
@@ -50,6 +51,8 @@ class EditableField:
         self._external_value = value
         if self.edited_value == old_value:
             self.edited_value = value
+        else:
+            self.on_edited_change()
 
     @property
     def edited_value(self):
@@ -64,6 +67,11 @@ class EditableField:
 
     def revert(self):
         self.edited_value = self.external_value
+
+    def on_edited_change(self, *args):
+        self.entry.state(['alternate'
+                          if self.edited_value != self.external_value
+                          else '!alternate'])
 
 
 class SpanWidget:

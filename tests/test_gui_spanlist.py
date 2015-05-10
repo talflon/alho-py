@@ -99,13 +99,16 @@ class TestEditableField:
         value = 'blah blah blah'
         field.entry.insert(0, value)
         assert field.edited_value == value
+        assert 'alternate' in field.entry.state()
 
     def test_editable(self, field):
         field.editable = False
+        assert 'readonly' in field.entry.state()
         old_value = field.entry.get()
         field.entry.insert(0, '?')
         assert field.entry.get() == old_value
         field.editable = True
+        assert 'readonly' not in field.entry.state()
         field.entry.insert(0, '!')
         assert field.entry.get() == '!' + old_value
 
@@ -115,6 +118,7 @@ class TestEditableField:
         field.edited_value = new_value
         assert field.edited_value == new_value
         assert field.entry.get() == new_value
+        assert 'alternate' in field.entry.state()
 
     def test_revert_to_external(self, field):
         field.editable = True
@@ -124,6 +128,7 @@ class TestEditableField:
         field.external_value = new_value
         field.revert()
         assert field.edited_value == field.external_value == new_value
+        assert 'alternate' not in field.entry.state()
 
     def test_save_to_external(self, field):
         field.editable = True
@@ -131,6 +136,7 @@ class TestEditableField:
         field.edited_value = edit_value
         field.save()
         assert field.edited_value == field.external_value == edit_value
+        assert 'alternate' not in field.entry.state()
 
     def test_save_with_external_changed(self, field):
         field.editable = True
@@ -140,6 +146,7 @@ class TestEditableField:
         field.external_value = ext_value
         field.save()
         assert field.edited_value == field.external_value == edit_value
+        assert 'alternate' not in field.entry.state()
 
     @pytest.mark.parametrize('editable', [True, False])
     def test_set_external_value_after_change(self, field, editable):
@@ -151,6 +158,7 @@ class TestEditableField:
         field.external_value = ext_value
         assert field.edited_value == edit_value == field.entry.get()
         assert field.external_value == ext_value
+        assert 'alternate' in field.entry.state()
 
     @pytest.mark.parametrize('editable', [True, False])
     def test_set_external_value_when_unchanged(self, field, editable):
@@ -158,11 +166,14 @@ class TestEditableField:
         new_value = 'Test'
         field.external_value = new_value
         assert field.edited_value == new_value == field.entry.get()
+        assert 'alternate' not in field.entry.state()
         new_value2 = 'omg'
         field.external_value = new_value2
         assert field.edited_value == new_value2 == field.entry.get()
+        assert 'alternate' not in field.entry.state()
         field.external_value = ''
         assert field.edited_value == '' == field.entry.get()
+        assert 'alternate' not in field.entry.state()
 
 
 class TestSpanListWidget:
