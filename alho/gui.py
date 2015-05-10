@@ -22,6 +22,28 @@ def tag_set_to_str(tag_set):
     return ', '.join(sorted(tag_set))
 
 
+def state_change(**flags):
+    """Return an appropriate argument to `tkinter.ttk.Widget.state()`.
+
+    Keyword arguments' names are the flags to be sent, and values are treated
+    as booleans: `True` turns on the given flag, and `False` turns it off.
+
+    >>> sorted(state_change(hover=False, invalid=True))
+    ['!hover', 'invalid']
+    """
+    return [flag if value else '!' + flag
+            for flag, value in flags.items()]
+
+
+def change_state(widget, **flags):
+    """Changes the given state flags of the given `tkinter.ttk.Widget`.
+
+    Keyword arguments' names are the flags to be sent, and values are treated
+    as booleans: `True` turns on the given flag, and `False` turns it off.
+    """
+    widget.state(state_change(**flags))
+
+
 class EditableField:
 
     def __init__(self, master, value='', editable=False):
@@ -39,7 +61,7 @@ class EditableField:
     @editable.setter
     def editable(self, value):
         self._editable = bool(value)
-        self.entry.state(['!readonly' if self._editable else 'readonly'])
+        change_state(self.entry, readonly=not self._editable)
 
     @property
     def external_value(self):
@@ -87,10 +109,9 @@ class EditableField:
         self.edited_value = self.external_value
 
     def on_edited_change(self, *args):
-        self.entry.state(['alternate'
-                          if self.proposed_value != self.external_value
-                          else '!alternate',
-                          '!invalid' if self.proposed_valid else 'invalid'])
+        change_state(self.entry,
+                     alternate=self.proposed_value != self.external_value,
+                     invalid=not self.proposed_valid)
 
 
 class SpanWidget:
