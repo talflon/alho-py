@@ -1,6 +1,6 @@
 import pytest
 import tkinter as tk
-from mock import Mock
+from mock import Mock, call
 
 
 def assert_widget_shown(widget):
@@ -183,7 +183,7 @@ class TestEditableField:
         field.save()
         assert field.external_value == 'normal'
         assert field.edited_value == 'normal'
-        field.normalize.assert_called_with('abnormal')
+        assert call('abnormal') in field.normalize.call_args_list
 
     def test_proposed_value(self, field):
         field.normalize = Mock()
@@ -192,7 +192,25 @@ class TestEditableField:
         field.edited_value = 'abnormal'
         assert field.edited_value == 'abnormal'
         assert field.proposed_value == 'normal'
-        field.normalize.assert_called_with('abnormal')
+        assert call('abnormal') in field.normalize.call_args_list
+
+    def test_alternate_state_normalized_same(self, field):
+        field.normalize = Mock()
+        field.normalize.return_value = 'normal'
+        field.external_value = 'normal'
+        field.editable = True
+        field.edited_value = 'abnormal'
+        assert 'alternate' not in field.entry.state()
+        assert call('abnormal') in field.normalize.call_args_list
+
+    def test_alternate_state_normalized_different(self, field):
+        field.normalize = Mock()
+        field.normalize.return_value = 'normal'
+        field.external_value = 'different'
+        field.editable = True
+        field.edited_value = 'abnormal'
+        assert 'alternate' in field.entry.state()
+        assert call('abnormal') in field.normalize.call_args_list
 
 
 class TestSpanListWidget:

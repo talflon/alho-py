@@ -77,7 +77,7 @@ class EditableField:
 
     def on_edited_change(self, *args):
         self.entry.state(['alternate'
-                          if self.edited_value != self.external_value
+                          if self.proposed_value != self.external_value
                           else '!alternate'])
 
 
