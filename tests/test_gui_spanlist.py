@@ -122,8 +122,6 @@ class TestEditableField:
         new_value = 'oi tud dret'
         field.edited_value = edit_value
         field.external_value = new_value
-        assert field.edited_value == edit_value
-        assert field.external_value == new_value
         field.revert()
         assert field.edited_value == field.external_value == new_value
 
@@ -140,10 +138,31 @@ class TestEditableField:
         ext_value = 'oi tud dret'
         field.edited_value = edit_value
         field.external_value = ext_value
-        assert field.edited_value == edit_value
-        assert field.external_value == ext_value
         field.save()
         assert field.edited_value == field.external_value == edit_value
+
+    @pytest.mark.parametrize('editable', [True, False])
+    def test_set_external_value_after_change(self, field, editable):
+        field.editable = True
+        edit_value = 'different'
+        ext_value = 'yet another'
+        field.edited_value = edit_value
+        field.editable = editable
+        field.external_value = ext_value
+        assert field.edited_value == edit_value == field.entry.get()
+        assert field.external_value == ext_value
+
+    @pytest.mark.parametrize('editable', [True, False])
+    def test_set_external_value_when_unchanged(self, field, editable):
+        field.editable = editable
+        new_value = 'Test'
+        field.external_value = new_value
+        assert field.edited_value == new_value == field.entry.get()
+        new_value2 = 'omg'
+        field.external_value = new_value2
+        assert field.edited_value == new_value2 == field.entry.get()
+        field.external_value = ''
+        assert field.edited_value == '' == field.entry.get()
 
 
 class TestSpanListWidget:

@@ -46,7 +46,10 @@ class EditableField:
 
     @external_value.setter
     def external_value(self, value):
+        old_value = self._external_value
         self._external_value = value
+        if self.edited_value == old_value:
+            self.edited_value = value
 
     @property
     def edited_value(self):
