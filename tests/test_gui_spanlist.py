@@ -221,6 +221,21 @@ class TestEditableField:
         field.external_value = 'three'
         assert field.edited_value == 'three'
 
+    def test_proposed_value_invalid(self, field):
+        field.normalize = lambda s: exec('raise ValueError')
+        new_value = 'hi'
+        field.edited_value = new_value
+        assert field.proposed_value == field.edited_value
+
+    def test_proposed_valid(self, field):
+        field.edited_value = 'blah'
+        assert field.proposed_valid
+        assert 'invalid' not in field.entry.state()
+        field.normalize = lambda s: exec('raise ValueError')
+        field.edited_value = 'bleh'
+        assert not field.proposed_valid
+        assert 'invalid' in field.entry.state()
+
 
 class TestSpanListWidget:
 

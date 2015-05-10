@@ -67,7 +67,18 @@ class EditableField:
 
     @property
     def proposed_value(self):
-        return self.normalize(self.edited_value)
+        try:
+            return self.normalize(self.edited_value)
+        except ValueError:
+            return self.edited_value
+
+    @property
+    def proposed_valid(self):
+        try:
+            self.normalize(self.edited_value)
+            return True
+        except ValueError:
+            return False
 
     def save(self):
         self.external_value = self.edited_value = self.proposed_value
@@ -78,7 +89,8 @@ class EditableField:
     def on_edited_change(self, *args):
         self.entry.state(['alternate'
                           if self.proposed_value != self.external_value
-                          else '!alternate'])
+                          else '!alternate',
+                          '!invalid' if self.proposed_valid else 'invalid'])
 
 
 class SpanWidget:
