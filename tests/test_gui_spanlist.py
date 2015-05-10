@@ -212,6 +212,15 @@ class TestEditableField:
         assert 'alternate' in field.entry.state()
         assert call('abnormal') in field.normalize.call_args_list
 
+    @pytest.mark.parametrize('editable', [True, False])
+    def test_set_external_value_when_normalized_unchanged(self,field,editable):
+        field.normalize = lambda s: s.split('|')[0]
+        field.editable = editable
+        field.external_value = 'one'
+        field.edited_value = 'one|two'
+        field.external_value = 'three'
+        assert field.edited_value == 'three'
+
 
 class TestSpanListWidget:
 

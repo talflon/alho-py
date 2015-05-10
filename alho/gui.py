@@ -49,7 +49,7 @@ class EditableField:
     def external_value(self, value):
         old_value = self._external_value
         self._external_value = value
-        if self.edited_value == old_value:
+        if self.proposed_value == old_value:
             self.edited_value = value
         else:
             self.on_edited_change()
