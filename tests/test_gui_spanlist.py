@@ -175,6 +175,25 @@ class TestEditableField:
         assert field.edited_value == '' == field.entry.get()
         assert 'alternate' not in field.entry.state()
 
+    def test_save_normalize(self, field):
+        field.normalize = Mock()
+        field.normalize.return_value = 'normal'
+        field.editable = True
+        field.edited_value = 'abnormal'
+        field.save()
+        assert field.external_value == 'normal'
+        assert field.edited_value == 'normal'
+        field.normalize.assert_called_with('abnormal')
+
+    def test_proposed_value(self, field):
+        field.normalize = Mock()
+        field.normalize.return_value = 'normal'
+        field.editable = True
+        field.edited_value = 'abnormal'
+        assert field.edited_value == 'abnormal'
+        assert field.proposed_value == 'normal'
+        field.normalize.assert_called_with('abnormal')
+
 
 class TestSpanListWidget:
 

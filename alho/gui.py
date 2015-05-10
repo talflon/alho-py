@@ -62,8 +62,15 @@ class EditableField:
     def edited_value(self, value):
         self.edited_var.set(value)
 
+    def normalize(self, value):
+        return value
+
+    @property
+    def proposed_value(self):
+        return self.normalize(self.edited_value)
+
     def save(self):
-        self.external_value = self.edited_value
+        self.external_value = self.edited_value = self.proposed_value
 
     def revert(self):
         self.edited_value = self.external_value
