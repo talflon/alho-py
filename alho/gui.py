@@ -38,7 +38,7 @@ class EditableField:
     @editable.setter
     def editable(self, value):
         self._editable = bool(value)
-        self.entry.config(state='normal' if self._editable else 'readonly')
+        self.entry.state(['!readonly' if self._editable else 'readonly'])
 
     @property
     def external_value(self):
