@@ -70,14 +70,38 @@ def test_tag_str_to_set_invalid(tag_str):
 
 
 def test_switch_no_tags(span_list):
+    db = span_list.db
     from alho.db import SpanEdit, TimeStamp
     t = 10000
     span_edit = SpanEdit(TimeStamp(t, span_list.db.location, 0), 123, t)
-    span_list.db.add_span.return_value = span_edit
+    db.add_span.return_value = span_edit
+    db.get_tags.return_value = []
     span_list.switch_button.invoke()
-    span_list.db.add_span.assert_called_once_with()
+
+    db.add_span.assert_called_once_with()
     span_widget = span_list.spans[-1]
     assert_widget_shown(span_widget.widget)
     assert_widget_shown(span_widget.tag_entry)
     assert span_widget.tag_entry.get() == ''
     assert_widget_shown(span_widget.start_entry)
+
+
+def test_switch_with_tags(span_list):
+    db = span_list.db
+    from alho.db import SpanEdit, TimeStamp
+    from alho.gui import tag_set_to_str
+    tags = {'blah', 'bleh', 'blue'}
+    t = 10000
+    span_id = 456
+    span_edit = SpanEdit(TimeStamp(t, span_list.db.location, 0), span_id, t)
+    db.add_span.return_value = span_edit
+    db.get_tags.return_value = tags.copy()
+    span_list.switch_tags.delete(0, tk.END)
+    span_list.switch_tags.insert(0, tag_set_to_str(tags))
+    span_list.switch_button.invoke()
+
+    span_widget = span_list.spans[-1]
+    assert (set(c[0] for c in db.add_tag.call_args_list) ==
+            {(span_id, n) for n in tags})
+    assert span_widget.tag_entry.get() == tag_set_to_str(tags)
+    assert span_list.switch_tags.get() == ''

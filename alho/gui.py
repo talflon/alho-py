@@ -29,13 +29,14 @@ class SpanWidget:
         self.db = db
         self.span_id = span_id
 
-        self.tags = {}
+        self.tags = set(db.get_tags(span_id))
 
         self.start_entry = Entry(self.widget)
         self.start_entry.pack(side=tk.LEFT)
 
         self.tag_entry = Entry(self.widget)
         self.tag_entry.pack(side=tk.LEFT, fill=tk.X)
+        self.tag_entry.insert(0, tag_set_to_str(self.tags))
 
 
 class SpanListWidget:
@@ -58,10 +59,14 @@ class SpanListWidget:
         self.switch_box.pack()
 
     def on_switch_button(self, *args):
-        self.add_span()
+        self.add_span(tag_str_to_set(self.switch_tags.get()))
+        self.switch_tags.delete(0, tk.END)
 
-    def add_span(self):
-        span = SpanWidget(self.span_box, self.db, self.db.add_span().span_id)
+    def add_span(self, tags=()):
+        span_id = self.db.add_span().span_id
+        for tag_name in tags:
+            self.db.add_tag(span_id, tag_name)
+        span = SpanWidget(self.span_box, self.db, span_id)
         self.spans.append(span)
         span.widget.pack()
         return span
