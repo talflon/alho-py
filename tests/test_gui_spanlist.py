@@ -67,6 +67,85 @@ class TestTagSetMethods:
             tag_str_to_set(tag_str)
 
 
+class TestEditableField:
+
+    @pytest.fixture
+    def field(self):
+        from alho.gui import EditableField
+        win = tk.Tk()
+        field = EditableField(win)
+        field.widget.pack()
+        return field
+
+    @pytest.mark.parametrize('value', ['', 'Q', 'oh say, can you seeeeee'])
+    def test_initial_value(self, value):
+        from alho.gui import EditableField
+        win = tk.Tk()
+        field = EditableField(win, value)
+        field.widget.pack()
+        assert field.external_value == value
+        assert field.edited_value == value
+        assert field.entry.get() == value
+
+    def test_revert_blank(self, field):
+        field.editable = True
+        field.entry.insert(0, 'hey guys')
+        field.revert()
+        assert field.entry.get() == ''
+        assert field.edited_value == ''
+
+    def test_edit_value(self, field):
+        field.editable = True
+        value = 'blah blah blah'
+        field.entry.insert(0, value)
+        assert field.edited_value == value
+
+    def test_editable(self, field):
+        field.editable = False
+        old_value = field.entry.get()
+        field.entry.insert(0, '?')
+        assert field.entry.get() == old_value
+        field.editable = True
+        field.entry.insert(0, '!')
+        assert field.entry.get() == '!' + old_value
+
+    def test_set_edited_value(self, field):
+        field.editable = True
+        new_value = 'Something Something'
+        field.edited_value = new_value
+        assert field.edited_value == new_value
+        assert field.entry.get() == new_value
+
+    def test_revert_to_external(self, field):
+        field.editable = True
+        edit_value = '123456'
+        new_value = 'oi tud dret'
+        field.edited_value = edit_value
+        field.external_value = new_value
+        assert field.edited_value == edit_value
+        assert field.external_value == new_value
+        field.revert()
+        assert field.edited_value == field.external_value == new_value
+
+    def test_save_to_external(self, field):
+        field.editable = True
+        edit_value = 'success!'
+        field.edited_value = edit_value
+        field.save()
+        assert field.edited_value == field.external_value == edit_value
+
+    def test_save_with_external_changed(self, field):
+        field.editable = True
+        edit_value = '123456'
+        ext_value = 'oi tud dret'
+        field.edited_value = edit_value
+        field.external_value = ext_value
+        assert field.edited_value == edit_value
+        assert field.external_value == ext_value
+        field.save()
+        assert field.edited_value == field.external_value == edit_value
+
+
 class TestSpanListWidget:
 
     def test_switch_no_tags(self, span_list):

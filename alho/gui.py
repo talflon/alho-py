@@ -22,6 +22,47 @@ def tag_set_to_str(tag_set):
     return ', '.join(sorted(tag_set))
 
 
+class EditableField:
+
+    def __init__(self, master, value='', editable=False):
+        self.edited_var = tk.StringVar(master)
+        self.edited_var.set(value)
+        self.widget = self.entry = Entry(master, textvariable=self.edited_var)
+        self._external_value = value
+        self.editable = editable
+
+    @property
+    def editable(self):
+        return self._editable
+
+    @editable.setter
+    def editable(self, value):
+        self._editable = bool(value)
+        self.entry.config(state='normal' if self._editable else 'readonly')
+
+    @property
+    def external_value(self):
+        return self._external_value
+
+    @external_value.setter
+    def external_value(self, value):
+        self._external_value = value
+
+    @property
+    def edited_value(self):
+        return self.edited_var.get()
+
+    @edited_value.setter
+    def edited_value(self, value):
+        self.edited_var.set(value)
+
+    def save(self):
+        self.external_value = self.edited_value
+
+    def revert(self):
+        self.edited_value = self.external_value
+
+
 class SpanWidget:
 
     def __init__(self, master, db, span_id):
