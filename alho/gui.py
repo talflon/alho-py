@@ -44,7 +44,7 @@ def change_state(widget, **flags):
     widget.state(state_change(**flags))
 
 
-class EditableField:
+class SavableEntry:
 
     def __init__(self, master, value='', editable=False):
         self.edited_var = tk.StringVar(master)

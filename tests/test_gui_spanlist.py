@@ -67,174 +67,174 @@ class TestTagSetMethods:
             tag_str_to_set(tag_str)
 
 
-class TestEditableField:
+class TestSavableEntry:
 
     @pytest.fixture
-    def field(self):
-        from alho.gui import EditableField
+    def entry(self):
+        from alho.gui import SavableEntry
         win = tk.Tk()
-        field = EditableField(win)
-        field.widget.pack()
-        return field
+        entry = SavableEntry(win)
+        entry.widget.pack()
+        return entry
 
     @pytest.mark.parametrize('value', ['', 'Q', 'oh say, can you seeeeee'])
     def test_initial_value(self, value):
-        from alho.gui import EditableField
+        from alho.gui import SavableEntry
         win = tk.Tk()
-        field = EditableField(win, value)
-        field.widget.pack()
-        assert field.external_value == value
-        assert field.edited_value == value
-        assert field.entry.get() == value
+        entry = SavableEntry(win, value)
+        entry.widget.pack()
+        assert entry.external_value == value
+        assert entry.edited_value == value
+        assert entry.entry.get() == value
 
-    def test_revert_blank(self, field):
-        field.editable = True
-        field.entry.insert(0, 'hey guys')
-        field.revert()
-        assert field.entry.get() == ''
-        assert field.edited_value == ''
+    def test_revert_blank(self, entry):
+        entry.editable = True
+        entry.entry.insert(0, 'hey guys')
+        entry.revert()
+        assert entry.entry.get() == ''
+        assert entry.edited_value == ''
 
-    def test_edit_value(self, field):
-        field.editable = True
+    def test_edit_value(self, entry):
+        entry.editable = True
         value = 'blah blah blah'
-        field.entry.insert(0, value)
-        assert field.edited_value == value
-        assert 'alternate' in field.entry.state()
+        entry.entry.insert(0, value)
+        assert entry.edited_value == value
+        assert 'alternate' in entry.entry.state()
 
-    def test_editable(self, field):
-        field.editable = False
-        assert 'readonly' in field.entry.state()
-        old_value = field.entry.get()
-        field.entry.insert(0, '?')
-        assert field.entry.get() == old_value
-        field.editable = True
-        assert 'readonly' not in field.entry.state()
-        field.entry.insert(0, '!')
-        assert field.entry.get() == '!' + old_value
+    def test_editable(self, entry):
+        entry.editable = False
+        assert 'readonly' in entry.entry.state()
+        old_value = entry.entry.get()
+        entry.entry.insert(0, '?')
+        assert entry.entry.get() == old_value
+        entry.editable = True
+        assert 'readonly' not in entry.entry.state()
+        entry.entry.insert(0, '!')
+        assert entry.entry.get() == '!' + old_value
 
-    def test_set_edited_value(self, field):
-        field.editable = True
+    def test_set_edited_value(self, entry):
+        entry.editable = True
         new_value = 'Something Something'
-        field.edited_value = new_value
-        assert field.edited_value == new_value
-        assert field.entry.get() == new_value
-        assert 'alternate' in field.entry.state()
+        entry.edited_value = new_value
+        assert entry.edited_value == new_value
+        assert entry.entry.get() == new_value
+        assert 'alternate' in entry.entry.state()
 
-    def test_revert_to_external(self, field):
-        field.editable = True
+    def test_revert_to_external(self, entry):
+        entry.editable = True
         edit_value = '123456'
         new_value = 'oi tud dret'
-        field.edited_value = edit_value
-        field.external_value = new_value
-        field.revert()
-        assert field.edited_value == field.external_value == new_value
-        assert 'alternate' not in field.entry.state()
+        entry.edited_value = edit_value
+        entry.external_value = new_value
+        entry.revert()
+        assert entry.edited_value == entry.external_value == new_value
+        assert 'alternate' not in entry.entry.state()
 
-    def test_save_to_external(self, field):
-        field.editable = True
+    def test_save_to_external(self, entry):
+        entry.editable = True
         edit_value = 'success!'
-        field.edited_value = edit_value
-        field.save()
-        assert field.edited_value == field.external_value == edit_value
-        assert 'alternate' not in field.entry.state()
+        entry.edited_value = edit_value
+        entry.save()
+        assert entry.edited_value == entry.external_value == edit_value
+        assert 'alternate' not in entry.entry.state()
 
-    def test_save_with_external_changed(self, field):
-        field.editable = True
+    def test_save_with_external_changed(self, entry):
+        entry.editable = True
         edit_value = '123456'
         ext_value = 'oi tud dret'
-        field.edited_value = edit_value
-        field.external_value = ext_value
-        field.save()
-        assert field.edited_value == field.external_value == edit_value
-        assert 'alternate' not in field.entry.state()
+        entry.edited_value = edit_value
+        entry.external_value = ext_value
+        entry.save()
+        assert entry.edited_value == entry.external_value == edit_value
+        assert 'alternate' not in entry.entry.state()
 
     @pytest.mark.parametrize('editable', [True, False])
-    def test_set_external_value_after_change(self, field, editable):
-        field.editable = True
+    def test_set_external_value_after_change(self, entry, editable):
+        entry.editable = True
         edit_value = 'different'
         ext_value = 'yet another'
-        field.edited_value = edit_value
-        field.editable = editable
-        field.external_value = ext_value
-        assert field.edited_value == edit_value == field.entry.get()
-        assert field.external_value == ext_value
-        assert 'alternate' in field.entry.state()
+        entry.edited_value = edit_value
+        entry.editable = editable
+        entry.external_value = ext_value
+        assert entry.edited_value == edit_value == entry.entry.get()
+        assert entry.external_value == ext_value
+        assert 'alternate' in entry.entry.state()
 
     @pytest.mark.parametrize('editable', [True, False])
-    def test_set_external_value_when_unchanged(self, field, editable):
-        field.editable = editable
+    def test_set_external_value_when_unchanged(self, entry, editable):
+        entry.editable = editable
         new_value = 'Test'
-        field.external_value = new_value
-        assert field.edited_value == new_value == field.entry.get()
-        assert 'alternate' not in field.entry.state()
+        entry.external_value = new_value
+        assert entry.edited_value == new_value == entry.entry.get()
+        assert 'alternate' not in entry.entry.state()
         new_value2 = 'omg'
-        field.external_value = new_value2
-        assert field.edited_value == new_value2 == field.entry.get()
-        assert 'alternate' not in field.entry.state()
-        field.external_value = ''
-        assert field.edited_value == '' == field.entry.get()
-        assert 'alternate' not in field.entry.state()
+        entry.external_value = new_value2
+        assert entry.edited_value == new_value2 == entry.entry.get()
+        assert 'alternate' not in entry.entry.state()
+        entry.external_value = ''
+        assert entry.edited_value == '' == entry.entry.get()
+        assert 'alternate' not in entry.entry.state()
 
-    def test_save_normalize(self, field):
-        field.normalize = Mock()
-        field.normalize.return_value = 'normal'
-        field.editable = True
-        field.edited_value = 'abnormal'
-        field.save()
-        assert field.external_value == 'normal'
-        assert field.edited_value == 'normal'
-        assert call('abnormal') in field.normalize.call_args_list
+    def test_save_normalize(self, entry):
+        entry.normalize = Mock()
+        entry.normalize.return_value = 'normal'
+        entry.editable = True
+        entry.edited_value = 'abnormal'
+        entry.save()
+        assert entry.external_value == 'normal'
+        assert entry.edited_value == 'normal'
+        assert call('abnormal') in entry.normalize.call_args_list
 
-    def test_proposed_value(self, field):
-        field.normalize = Mock()
-        field.normalize.return_value = 'normal'
-        field.editable = True
-        field.edited_value = 'abnormal'
-        assert field.edited_value == 'abnormal'
-        assert field.proposed_value == 'normal'
-        assert call('abnormal') in field.normalize.call_args_list
+    def test_proposed_value(self, entry):
+        entry.normalize = Mock()
+        entry.normalize.return_value = 'normal'
+        entry.editable = True
+        entry.edited_value = 'abnormal'
+        assert entry.edited_value == 'abnormal'
+        assert entry.proposed_value == 'normal'
+        assert call('abnormal') in entry.normalize.call_args_list
 
-    def test_alternate_state_normalized_same(self, field):
-        field.normalize = Mock()
-        field.normalize.return_value = 'normal'
-        field.external_value = 'normal'
-        field.editable = True
-        field.edited_value = 'abnormal'
-        assert 'alternate' not in field.entry.state()
-        assert call('abnormal') in field.normalize.call_args_list
+    def test_alternate_state_normalized_same(self, entry):
+        entry.normalize = Mock()
+        entry.normalize.return_value = 'normal'
+        entry.external_value = 'normal'
+        entry.editable = True
+        entry.edited_value = 'abnormal'
+        assert 'alternate' not in entry.entry.state()
+        assert call('abnormal') in entry.normalize.call_args_list
 
-    def test_alternate_state_normalized_different(self, field):
-        field.normalize = Mock()
-        field.normalize.return_value = 'normal'
-        field.external_value = 'different'
-        field.editable = True
-        field.edited_value = 'abnormal'
-        assert 'alternate' in field.entry.state()
-        assert call('abnormal') in field.normalize.call_args_list
+    def test_alternate_state_normalized_different(self, entry):
+        entry.normalize = Mock()
+        entry.normalize.return_value = 'normal'
+        entry.external_value = 'different'
+        entry.editable = True
+        entry.edited_value = 'abnormal'
+        assert 'alternate' in entry.entry.state()
+        assert call('abnormal') in entry.normalize.call_args_list
 
     @pytest.mark.parametrize('editable', [True, False])
-    def test_set_external_value_when_normalized_unchanged(self,field,editable):
-        field.normalize = lambda s: s.split('|')[0]
-        field.editable = editable
-        field.external_value = 'one'
-        field.edited_value = 'one|two'
-        field.external_value = 'three'
-        assert field.edited_value == 'three'
+    def test_set_external_value_when_normalized_unchanged(self,entry,editable):
+        entry.normalize = lambda s: s.split('|')[0]
+        entry.editable = editable
+        entry.external_value = 'one'
+        entry.edited_value = 'one|two'
+        entry.external_value = 'three'
+        assert entry.edited_value == 'three'
 
-    def test_proposed_value_invalid(self, field):
-        field.normalize = lambda s: exec('raise ValueError')
+    def test_proposed_value_invalid(self, entry):
+        entry.normalize = lambda s: exec('raise ValueError')
         new_value = 'hi'
-        field.edited_value = new_value
-        assert field.proposed_value == field.edited_value
+        entry.edited_value = new_value
+        assert entry.proposed_value == entry.edited_value
 
-    def test_proposed_valid(self, field):
-        field.edited_value = 'blah'
-        assert field.proposed_valid
-        assert 'invalid' not in field.entry.state()
-        field.normalize = lambda s: exec('raise ValueError')
-        field.edited_value = 'bleh'
-        assert not field.proposed_valid
-        assert 'invalid' in field.entry.state()
+    def test_proposed_valid(self, entry):
+        entry.edited_value = 'blah'
+        assert entry.proposed_valid
+        assert 'invalid' not in entry.entry.state()
+        entry.normalize = lambda s: exec('raise ValueError')
+        entry.edited_value = 'bleh'
+        assert not entry.proposed_valid
+        assert 'invalid' in entry.entry.state()
 
 
 class TestSpanListWidget:
