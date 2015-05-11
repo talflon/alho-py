@@ -1,4 +1,5 @@
 import pytest
+import time
 import tkinter as tk
 from mock import Mock, call
 
@@ -245,15 +246,17 @@ class TestSpanListWidget:
         t = 10000
         span_edit = SpanEdit(TimeStamp(t, span_list.db.location, 0), 123, t)
         db.add_span.return_value = span_edit
+        db.get_span.return_value = span_edit
         db.get_tags.return_value = []
         span_list.switch_button.invoke()
 
         db.add_span.assert_called_once_with()
+        db.get_tags.assert_called_with(span_edit.span_id)
+
         span_widget = span_list.spans[-1]
         assert_widget_shown(span_widget.widget)
-        assert_widget_shown(span_widget.tag_entry)
-        assert span_widget.tag_entry.get() == ''
-        assert_widget_shown(span_widget.start_entry)
+        assert_widget_shown(span_widget.tag_entry.widget)
+        assert_widget_shown(span_widget.start_entry.widget)
 
     def test_switch_with_tags(self, span_list):
         db = span_list.db
@@ -264,13 +267,38 @@ class TestSpanListWidget:
         span_id = 456
         span_edit = SpanEdit(TimeStamp(t, span_list.db.location, 0), span_id, t)
         db.add_span.return_value = span_edit
+        db.get_span.return_value = span_edit
         db.get_tags.return_value = tags.copy()
-        span_list.switch_tags.delete(0, tk.END)
-        span_list.switch_tags.insert(0, tag_set_to_str(tags))
+        span_list.switch_tags.edited_value = tag_set_to_str(tags)
         span_list.switch_button.invoke()
 
-        span_widget = span_list.spans[-1]
         assert (set(c[0] for c in db.add_tag.call_args_list) ==
                 {(span_id, n) for n in tags})
-        assert span_widget.tag_entry.get() == tag_set_to_str(tags)
-        assert span_list.switch_tags.get() == ''
+        db.get_tags.assert_called_with(span_edit.span_id)
+        assert span_list.switch_tags.edited_value == ''
+
+
+TIME_FMT = '%Y-%m-%d %H:%M:%S'
+
+
+class TestSpanWidget:
+
+    def test_initial_values(self, mock_db):
+        from alho.gui import SpanWidget, tag_set_to_str
+        from alho.db import SpanEdit, TimeStamp
+        win = tk.Tk()
+        t = 123456789
+        span_id = 300
+        tags = {'asdf', 'ghjkl'}
+        mock_db.get_span.return_value = SpanEdit(
+            TimeStamp(t, mock_db.location, 0), span_id, t)
+        mock_db.get_tags.return_value = tags
+        span_widget = SpanWidget(win, mock_db, span_id)
+        span_widget.widget.pack()
+        assert (span_widget.start_entry.external_value ==
+                time.strftime(TIME_FMT, time.localtime(t)) ==
+                span_widget.start_entry.entry.get())
+        assert (span_widget.tag_entry.external_value ==
+                tag_set_to_str(tags) ==
+                span_widget.tag_entry.entry.get())
+        mock_db.get_span.assert_called_with(span_id)

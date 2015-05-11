@@ -1,4 +1,5 @@
 import re
+import time
 import tkinter as tk
 from tkinter.ttk import Button, Entry, Frame
 
@@ -122,13 +123,14 @@ class SpanWidget:
         self.span_id = span_id
 
         self.tags = set(db.get_tags(span_id))
+        start_time = time.strftime(
+            '%Y-%m-%d %H:%M:%S',
+            time.localtime(db.get_span(span_id).edited.time))
+        self.start_entry = SavableEntry(self.widget, start_time)
+        self.start_entry.widget.pack(side=tk.LEFT)
 
-        self.start_entry = Entry(self.widget)
-        self.start_entry.pack(side=tk.LEFT)
-
-        self.tag_entry = Entry(self.widget)
-        self.tag_entry.pack(side=tk.LEFT, fill=tk.X)
-        self.tag_entry.insert(0, tag_set_to_str(self.tags))
+        self.tag_entry = SavableEntry(self.widget, tag_set_to_str(self.tags))
+        self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
 
 
 class SpanListWidget:
@@ -145,14 +147,14 @@ class SpanListWidget:
         self.switch_button = Button(self.switch_box, text='switch',
                                     command=self.on_switch_button)
         self.switch_button.pack(side=tk.LEFT)
-        self.switch_tags = Entry(self.switch_box)
+        self.switch_tags = SavableEntry(self.switch_box)
         self.switch_tags.save = self.on_switch_button
-        self.switch_tags.pack(side=tk.LEFT)
+        self.switch_tags.widget.pack(side=tk.LEFT)
         self.switch_box.pack()
 
     def on_switch_button(self, *args):
-        self.add_span(tag_str_to_set(self.switch_tags.get()))
-        self.switch_tags.delete(0, tk.END)
+        self.add_span(tag_str_to_set(self.switch_tags.edited_value))
+        self.switch_tags.revert()
 
     def add_span(self, tags=()):
         span_id = self.db.add_span().span_id
