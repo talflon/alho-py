@@ -378,22 +378,38 @@ TIME_FMT = '%Y-%m-%d %H:%M:%S'
 
 class TestSpanWidget:
 
-    def test_initial_values(self, mock_db):
-        from alho.gui import SpanWidget, tag_set_to_str
-        from alho.db import SpanEdit, TimeStamp
-        win = tk.Tk()
-        t = 123456789
+    def test_initial_tag_value(self, mock_db, monkeypatch):
+        import alho.gui
+        monkeypatch.setattr(alho.gui, 'tag_set_to_str', Mock())
+        alho.gui.tag_set_to_str.return_value = '~* Success! *~'
         span_id = 300
         tags = {'asdf', 'ghjkl'}
-        mock_db.get_span.return_value = SpanEdit(
-            TimeStamp(t, mock_db.location, 0), span_id, t)
+        mock_db.get_span.return_value = create_span_edit(mock_db.location,
+                                                         span_id, 123456789)
         mock_db.get_tags.return_value = tags
-        span_widget = SpanWidget(win, mock_db, span_id)
+        span_widget = alho.gui.SpanWidget(tk.Tk(), mock_db, span_id)
+        span_widget.widget.pack()
+        assert (span_widget.tag_entry.external_value ==
+                alho.gui.tag_set_to_str.return_value ==
+                span_widget.tag_entry.entry.get())
+        alho.gui.tag_set_to_str.assert_called_with(tags)
+
+    @pytest.mark.parametrize('time_str', [
+        '2015-05-13 12:34:56',
+        '1984-12-25 00:15:00',
+        '2001-03-18 18:03:10',
+        '2025-09-01 05:28:04',
+    ])
+    def test_initial_start_value(self, mock_db, time_str):
+        from alho.gui import SpanWidget
+        t = time.mktime(time.strptime(time_str, TIME_FMT))
+        span_id = 9999
+        mock_db.get_span.return_value = create_span_edit(mock_db.location,
+                                                         span_id, t)
+        mock_db.get_tags.return_value = {}
+        span_widget = SpanWidget(tk.Tk(), mock_db, span_id)
         span_widget.widget.pack()
         assert (span_widget.start_entry.external_value ==
-                time.strftime(TIME_FMT, time.localtime(t)) ==
+                time_str ==
                 span_widget.start_entry.entry.get())
-        assert (span_widget.tag_entry.external_value ==
-                tag_set_to_str(tags) ==
-                span_widget.tag_entry.entry.get())
         mock_db.get_span.assert_called_with(span_id)
