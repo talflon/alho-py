@@ -23,13 +23,43 @@ def mock_db():
     return db
 
 
-@pytest.fixture
-def span_list(mock_db):
+def create_span_list(db):
     from alho.gui import SpanListWidget
     win = tk.Tk()
-    span_list = SpanListWidget(win, mock_db)
+    span_list = SpanListWidget(win, db)
     span_list.widget.pack()
     return span_list
+
+
+def create_span_edit(loc, span_id, t):
+    from alho.db import SpanEdit, TimeStamp
+    return SpanEdit(TimeStamp(t, loc, 0), span_id, t)
+
+def create_span_list_with_spans(mock_db, num_spans):
+    span_list = create_span_list(mock_db)
+    db = span_list.db
+    for span_id in range(1, num_spans + 1):
+        span_edit = create_span_edit(db.location, span_id, 10000 + span_id)
+        db.add_span.return_value = span_edit
+        db.get_span.return_value = span_edit
+        db.get_tags.return_value = {}
+        span_list.add_span()
+    return span_list
+
+
+@pytest.fixture
+def span_list_empty(mock_db):
+    return create_span_list(mock_db)
+
+
+@pytest.fixture
+def span_list_with_spans(mock_db):
+    return create_span_list_with_spans(mock_db, 5)
+
+
+@pytest.fixture(params=[0, 1, 5])
+def span_list(mock_db, request):
+    return create_span_list_with_spans(mock_db, request.param)
 
 
 class TestTagSetMethods:
@@ -242,15 +272,14 @@ class TestSpanListWidget:
 
     def test_switch_no_tags(self, span_list):
         db = span_list.db
-        from alho.db import SpanEdit, TimeStamp
-        t = 10000
-        span_edit = SpanEdit(TimeStamp(t, span_list.db.location, 0), 123, t)
+        span_edit = create_span_edit(db.location, 123, 10000)
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
         db.get_tags.return_value = []
-        span_list.switch_button.invoke()
 
-        db.add_span.assert_called_once_with()
+        old_call_count = db.add_span.call_count
+        span_list.switch_button.invoke()
+        assert db.add_span.call_count == old_call_count + 1
         db.get_tags.assert_called_with(span_edit.span_id)
 
         span_widget = span_list.spans[-1]
@@ -260,12 +289,9 @@ class TestSpanListWidget:
 
     def test_switch_with_tags(self, span_list):
         db = span_list.db
-        from alho.db import SpanEdit, TimeStamp
         from alho.gui import tag_set_to_str
         tags = {'blah', 'bleh', 'blue'}
-        t = 10000
-        span_id = 456
-        span_edit = SpanEdit(TimeStamp(t, span_list.db.location, 0), span_id, t)
+        span_edit = create_span_edit(db.location, 456, 10000)
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
         db.get_tags.return_value = tags.copy()
@@ -273,9 +299,78 @@ class TestSpanListWidget:
         span_list.switch_button.invoke()
 
         assert (set(c[0] for c in db.add_tag.call_args_list) ==
-                {(span_id, n) for n in tags})
+                {(span_edit.span_id, n) for n in tags})
         db.get_tags.assert_called_with(span_edit.span_id)
         assert span_list.switch_tags.edited_value == ''
+
+    def test_switch_editing_status(self, span_list):
+        db = span_list.db
+        span_edit = create_span_edit(db.location, 1, 10000)
+        db.add_span.return_value = span_edit
+        db.get_span.return_value = span_edit
+        db.get_tags.return_value = {}
+        span_list.editing = False
+        span_list.switch_button.invoke()
+        span = span_list.spans[-1]
+        assert not span.start_entry.editable
+        assert not span.tag_entry.editable
+        span_list.editing = True
+        span_list.switch_button.invoke()
+        assert span != span_list.spans[-1]
+        span = span_list.spans[-1]
+        assert span.start_entry.editable
+        assert span.tag_entry.editable
+
+    def test_edit_button(self, span_list_with_spans):
+        span_list = span_list_with_spans
+        span_list.editing = False
+        assert 'disabled' not in span_list.edit_button.state()
+        span_list.edit_button.invoke()
+        for span in span_list.spans:
+            assert span.start_entry.editable
+            assert span.tag_entry.editable
+        assert 'disabled' in span_list.edit_button.state()
+
+    def test_revert_button(self, span_list_with_spans):
+        span_list = span_list_with_spans
+        span_list.editing = True
+        assert 'disabled' not in span_list.revert_button.state()
+        for span in span_list.spans:
+            span.start_entry.revert = Mock()
+            span.tag_entry.revert = Mock()
+        span_list.revert_button.invoke()
+        for span in span_list.spans:
+            span.start_entry.revert.assert_called_once_with()
+            span.tag_entry.revert.assert_called_once_with()
+        assert not span_list.editing
+
+    def test_save_button_all_valid(self, span_list_with_spans):
+        span_list = span_list_with_spans
+        span_list.editing = True
+        assert 'disabled' not in span_list.save_button.state()
+        for span in span_list.spans:
+            span.start_entry.save = Mock()
+            span.tag_entry.save = Mock()
+        span_list.save_button.invoke()
+        for span in span_list.spans:
+            span.start_entry.save.assert_called_once_with()
+            span.tag_entry.save.assert_called_once_with()
+        assert not span_list.editing
+
+    def test_editing_button_states(self, span_list):
+        if span_list.spans:
+            span_list.editing = True
+            assert 'disabled' in span_list.edit_button.state()
+            assert 'disabled' not in span_list.revert_button.state()
+            assert 'disabled' not in span_list.save_button.state()
+            span_list.editing = False
+            assert 'disabled' not in span_list.edit_button.state()
+            assert 'disabled' in span_list.revert_button.state()
+            assert 'disabled' in span_list.save_button.state()
+        else:
+            assert 'disabled' in span_list.edit_button.state()
+            assert 'disabled' in span_list.revert_button.state()
+            assert 'disabled' in span_list.save_button.state()
 
 
 TIME_FMT = '%Y-%m-%d %H:%M:%S'

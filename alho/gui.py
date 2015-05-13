@@ -140,6 +140,20 @@ class SpanListWidget:
         self.db = db
         self.spans = []
 
+        self.edit_box = Frame(self.widget)
+        self.edit_button = Button(self.edit_box, text='edit',
+                                  command=self.on_edit_button)
+        self.edit_button.pack(side=tk.LEFT)
+        self.save_button = Button(self.edit_box, text='save',
+                                  command=self.on_save_button)
+        self.save_button.pack(side=tk.LEFT)
+        self.revert_button = Button(self.edit_box, text='revert',
+                                    command=self.on_revert_button)
+        self.revert_button.pack(side=tk.LEFT)
+        self.edit_box.pack()
+
+        self.editing = False
+
         self.span_box = Frame(self.widget)
         self.span_box.pack()
 
@@ -152,9 +166,45 @@ class SpanListWidget:
         self.switch_tags.widget.pack(side=tk.LEFT)
         self.switch_box.pack()
 
+    @property
+    def editing(self):
+        return self._editing
+
+    @editing.setter
+    def editing(self, value):
+        value = bool(value)
+        self._editing = value
+        change_state(self.edit_button, disabled=value or not self.spans)
+        change_state(self.save_button, disabled=not value)
+        change_state(self.revert_button, disabled=not value)
+        for entry in self.all_span_entries():
+            entry.editable = value
+
     def on_switch_button(self, *args):
         self.add_span(tag_str_to_set(self.switch_tags.edited_value))
         self.switch_tags.revert()
+
+    def on_edit_button(self, *args):
+        self.editing = True
+
+    def all_span_entries(self):
+        for span in self.spans[:]:
+            yield span.start_entry
+            yield span.tag_entry
+
+    def on_save_button(self, *args):
+        something_invalid = False
+        for entry in self.all_span_entries():
+            if entry.proposed_valid:
+                entry.save()
+            else:
+                something_invalid = True
+        self.editing = something_invalid
+
+    def on_revert_button(self, *args):
+        for entry in self.all_span_entries():
+            entry.revert()
+        self.editing = False
 
     def add_span(self, tags=()):
         span_id = self.db.add_span().span_id
@@ -163,6 +213,8 @@ class SpanListWidget:
         span = SpanWidget(self.span_box, self.db, span_id)
         self.spans.append(span)
         span.widget.pack()
+        change_state(self.edit_button, disabled=self.editing)
+        span.start_entry.editable = span.tag_entry.editable = self.editing
         return span
 
 
