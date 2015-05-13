@@ -132,7 +132,7 @@ class SavableEntry:
                      invalid=not self.proposed_valid)
 
 
-class TagEntry(SavableEntry):
+class SpanTagEntry(SavableEntry):
 
     def __init__(self, span):
         tags = span.db.get_tags(span.span_id)
@@ -152,6 +152,35 @@ class TagEntry(SavableEntry):
         super().save()
 
 
+TIME_FMT = '%Y-%m-%d %H:%M:%S'
+
+
+def time_str_to_int(time_str):
+    return int(time.mktime(time.strptime(time_str, TIME_FMT)))
+
+
+def time_int_to_str(time_int):
+    return time.strftime(TIME_FMT, time.localtime(time_int))
+
+
+class SpanStartEntry(SavableEntry):
+
+    def __init__(self, span):
+        start_time = time_int_to_str(span.db.get_span(span.span_id).edited.time)
+        super().__init__(span.widget, start_time)
+        self.span = span
+
+    def normalize(self, value):
+        return time_int_to_str(time_str_to_int(value))
+
+    def save(self):
+        old_int = time_str_to_int(self.external_value)
+        new_int = time_str_to_int(self.edited_value)
+        if old_int != new_int:
+            self.span.db.set_span(self.span.span_id, new_int)
+        super().save()
+
+
 class SpanWidget:
 
     def __init__(self, master, db, span_id):
@@ -159,13 +188,10 @@ class SpanWidget:
         self.db = db
         self.span_id = span_id
 
-        start_time = time.strftime(
-            '%Y-%m-%d %H:%M:%S',
-            time.localtime(db.get_span(span_id).edited.time))
-        self.start_entry = SavableEntry(self.widget, start_time)
+        self.start_entry = SpanStartEntry(self)
         self.start_entry.widget.pack(side=tk.LEFT)
 
-        self.tag_entry = TagEntry(self)
+        self.tag_entry = SpanTagEntry(self)
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
 
 

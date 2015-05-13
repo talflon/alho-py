@@ -409,7 +409,7 @@ class TestSpanWidget:
         '2025-09-01 05:28:04',
     ])
     def test_initial_start_value(self, mock_db, time_str):
-        t = time.mktime(time.strptime(time_str, TIME_FMT))
+        t = int(time.mktime(time.strptime(time_str, TIME_FMT)))
         span_id = 9999
         span_widget = self.create_span_widget_for_values(mock_db,
                                                          span_id=span_id, t=t)
@@ -438,3 +438,19 @@ class TestSpanWidget:
                 {(span_id, n) for n in new_tags - old_tags})
         assert (set(c[0] for c in mock_db.remove_tag.call_args_list) ==
                 {(span_id, n) for n in old_tags - new_tags})
+
+    @pytest.mark.parametrize('time_str', [
+        '2015-05-13 12:34:56',
+        '1984-12-25 00:15:00',
+        '2001-03-18 18:03:10',
+        '2025-09-01 05:28:04',
+    ])
+    def test_save_start(self, mock_db, time_str):
+        old_t = 112233
+        new_t = int(time.mktime(time.strptime(time_str, TIME_FMT)))
+        span_id = 2
+        span_widget = self.create_span_widget_for_values(
+            mock_db, span_id=span_id, t=old_t)
+        span_widget.start_entry.edited_value = time_str
+        span_widget.start_entry.save()
+        mock_db.set_span.assert_called_with(span_id, new_t)
