@@ -132,6 +132,26 @@ class SavableEntry:
                      invalid=not self.proposed_valid)
 
 
+class TagEntry(SavableEntry):
+
+    def __init__(self, span):
+        tags = span.db.get_tags(span.span_id)
+        super().__init__(span.widget, tag_set_to_str(tags))
+        self.span = span
+
+    def normalize(self, value):
+        return tag_set_to_str(tag_str_to_set(value))
+
+    def save(self):
+        old_tags = tag_str_to_set(self.external_value)
+        new_tags = tag_str_to_set(self.edited_value)
+        for tag in old_tags - new_tags:
+            self.span.db.remove_tag(self.span.span_id, tag)
+        for tag in new_tags - old_tags:
+            self.span.db.add_tag(self.span.span_id, tag)
+        super().save()
+
+
 class SpanWidget:
 
     def __init__(self, master, db, span_id):
@@ -139,14 +159,13 @@ class SpanWidget:
         self.db = db
         self.span_id = span_id
 
-        self.tags = set(db.get_tags(span_id))
         start_time = time.strftime(
             '%Y-%m-%d %H:%M:%S',
             time.localtime(db.get_span(span_id).edited.time))
         self.start_entry = SavableEntry(self.widget, start_time)
         self.start_entry.widget.pack(side=tk.LEFT)
 
-        self.tag_entry = SavableEntry(self.widget, tag_set_to_str(self.tags))
+        self.tag_entry = TagEntry(self)
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
 
 
