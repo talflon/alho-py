@@ -293,7 +293,7 @@ class TestDateChooser:
 
     def assert_day(self, chooser, day):
         assert chooser.day == day
-        assert chooser.entry.get() == day.strftime('%Y-%m-%d')
+        assert chooser.entry.edited_value == day.strftime('%Y-%m-%d')
 
     @pytest.mark.parametrize('day', DATES)
     def test_init_day(self, day):
@@ -316,11 +316,11 @@ class TestDateChooser:
         self.assert_day(chooser, day)
 
     @pytest.mark.parametrize('day', DATES)
-    def test_set_day_via_entry(self, day, fake_time):
+    def test_set_day_via_entry_save(self, day, fake_time):
         day = self.mkday(day)
         chooser = self.create_chooser()
-        chooser.entry.delete(0, tk.END)
-        chooser.entry.insert(0, day.strftime('%Y-%m-%d'))
+        chooser.entry.edited_value = day.strftime('%Y-%m-%d')
+        chooser.entry.save()
         self.assert_day(chooser, day)
 
     @pytest.mark.parametrize('day', DATES)
@@ -349,14 +349,16 @@ class TestDateChooser:
 
     def test_editable(self):
         chooser = self.create_chooser()
-        widgets = [chooser.entry, chooser.inc_button, chooser.dec_button,
+        widgets = [chooser.inc_button, chooser.dec_button,
                    chooser.today_button]
         chooser.editable = True
         assert chooser.editable
+        assert chooser.entry.editable
         for widget in widgets:
             assert 'disabled' not in widget.state()
         chooser.editable = False
         assert not chooser.editable
+        assert not chooser.entry.editable
         for widget in widgets:
             assert 'disabled' in widget.state()
 

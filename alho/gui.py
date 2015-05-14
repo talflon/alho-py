@@ -199,25 +199,49 @@ class SpanWidget:
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
 
 
+class DateChooserEntry(SavableEntry):
+
+    def __init__(self, chooser):
+        super().__init__(chooser.widget)
+        self.chooser = chooser
+        self.entry.bind('<FocusOut>', self.on_focusout)
+        self.entry.bind('<Key-Return>', self.on_key_return)
+        self.entry.bind('<Key-Escape>', self.on_key_escape)
+
+    def on_focusout(self, *args):
+        if self.proposed_valid:
+            self.save()
+
+    def on_key_return(self, *args):
+        if self.proposed_valid:
+            self.save()
+
+    def on_key_escape(self, *args):
+        self.revert()
+
+    def normalize(self, value):
+        return date(*time.strptime(value, DATE_FMT)[:3]).strftime(DATE_FMT)
+
+
 class DateChooser:
 
     def __init__(self, master, day=None):
         self.widget = Frame(master)
         if day is None:
             day = date.today()
-        self.var = tk.StringVar(self.widget)
-        self.day = day
         self.dec_button = Button(self.widget, text='←',
                                  command=self.on_dec_button)
         self.dec_button.pack(side=tk.LEFT)
-        self.entry = Entry(self.widget, textvariable=self.var)
-        self.entry.pack(side=tk.LEFT)
+        self.entry = DateChooserEntry(self)
+        self.entry.widget.pack(side=tk.LEFT)
         self.today_button = Button(self.widget, text='today',
                                    command=self.on_today_button)
         self.today_button.pack(side=tk.LEFT)
         self.inc_button = Button(self.widget, text='→',
                                  command=self.on_inc_button)
         self.inc_button.pack(side=tk.LEFT)
+        self.day = day
+        self.editable = True
 
     @property
     def editable(self):
@@ -227,17 +251,17 @@ class DateChooser:
     def editable(self, value):
         value = bool(value)
         self._editable = value
-        for widget in (self.entry, self.dec_button, self.inc_button,
-                       self.today_button):
+        for widget in (self.dec_button, self.inc_button, self.today_button):
             change_state(widget, disabled=not value)
+        self.entry.editable = value
 
     @property
     def day(self):
-        return date(*time.strptime(self.var.get(), DATE_FMT)[:3])
+        return date(*time.strptime(self.entry.external_value, DATE_FMT)[:3])
 
     @day.setter
     def day(self, value):
-        self.var.set(value.strftime(DATE_FMT))
+        self.entry.external_value = value.strftime(DATE_FMT)
 
     def on_dec_button(self, *args):
         self.day -= timedelta(days=1)
