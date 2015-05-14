@@ -287,6 +287,9 @@ class SpanListWidget:
         self.db = db
         self.spans = []
 
+        self.date_chooser = DateChooser(self.widget)
+        self.date_chooser.widget.pack()
+
         self.edit_box = Frame(self.widget)
         self.edit_button = Button(self.edit_box, text='edit',
                                   command=self.on_edit_button)
@@ -321,6 +324,7 @@ class SpanListWidget:
     def editing(self, value):
         value = bool(value)
         self._editing = value
+        self.date_chooser.editable = not value
         change_state(self.edit_button, disabled=value or not self.spans)
         change_state(self.save_button, disabled=not value)
         change_state(self.revert_button, disabled=not value)

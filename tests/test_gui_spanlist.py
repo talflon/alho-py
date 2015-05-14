@@ -478,10 +478,12 @@ class TestSpanListWidget:
             assert 'disabled' in span_list.edit_button.state()
             assert 'disabled' not in span_list.revert_button.state()
             assert 'disabled' not in span_list.save_button.state()
+            assert not span_list.date_chooser.editable
             span_list.editing = False
             assert 'disabled' not in span_list.edit_button.state()
             assert 'disabled' in span_list.revert_button.state()
             assert 'disabled' in span_list.save_button.state()
+            assert span_list.date_chooser.editable
         else:
             assert 'disabled' in span_list.edit_button.state()
             assert 'disabled' in span_list.revert_button.state()
