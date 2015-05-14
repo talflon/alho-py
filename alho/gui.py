@@ -222,6 +222,10 @@ class DateChooserEntry(SavableEntry):
     def normalize(self, value):
         return date(*time.strptime(value, DATE_FMT)[:3]).strftime(DATE_FMT)
 
+    def on_edited_change(self, *args):
+        super().on_edited_change(*args)
+        self.chooser.editable = self.chooser.editable
+
 
 class DateChooser:
 
@@ -240,8 +244,8 @@ class DateChooser:
         self.inc_button = Button(self.widget, text='→',
                                  command=self.on_inc_button)
         self.inc_button.pack(side=tk.LEFT)
-        self.day = day
         self.editable = True
+        self.day = day
 
     @property
     def editable(self):
@@ -251,8 +255,10 @@ class DateChooser:
     def editable(self, value):
         value = bool(value)
         self._editable = value
-        for widget in (self.dec_button, self.inc_button, self.today_button):
-            change_state(widget, disabled=not value)
+        change_state(self.today_button, disabled=not value)
+        for widget in (self.dec_button, self.inc_button):
+            change_state(widget,
+                         disabled=not(value and self.entry.proposed_valid))
         self.entry.editable = value
 
     @property
@@ -270,6 +276,7 @@ class DateChooser:
         self.day += timedelta(days=1)
 
     def on_today_button(self, *args):
+        self.entry.revert()
         self.day = date.today()
 
 

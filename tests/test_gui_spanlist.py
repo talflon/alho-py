@@ -362,6 +362,26 @@ class TestDateChooser:
         for widget in widgets:
             assert 'disabled' in widget.state()
 
+    def test_today_button_with_invalid_entry(self, fake_time):
+        today = date(2015, 4, 21)
+        fake_time.value = time.mktime(today.timetuple())
+        chooser = self.create_chooser(day=date(2006, 2, 1))
+        chooser.entry.edited_value = 'not a date'
+        chooser.today_button.invoke()
+        assert (chooser.entry.external_value ==
+                today.strftime('%Y-%m-%d') ==
+                chooser.entry.edited_value)
+
+    def test_editable_with_invalid_entry(self, fake_time):
+        chooser = self.create_chooser()
+        chooser.editable = True
+        chooser.entry.edited_value = 'supercalifragilisticexpialidocious'
+        assert chooser.editable
+        assert chooser.entry.editable
+        for widget in [chooser.inc_button, chooser.dec_button]:
+            assert 'disabled' in widget.state()
+        assert 'disabled' not in chooser.today_button.state()
+
 
 class TestSpanListWidget:
 
