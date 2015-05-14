@@ -1,6 +1,8 @@
-import pytest
 import time
 import tkinter as tk
+from datetime import date, timedelta
+
+import pytest
 from mock import Mock, call
 
 
@@ -267,6 +269,94 @@ class TestSavableEntry:
         entry.edited_value = 'bleh'
         assert not entry.proposed_valid
         assert 'invalid' in entry.entry.state()
+
+
+class TestDateChooser:
+
+    DATES = [
+        '1999-12-31',
+        '2000-02-28',
+        '2008-02-29',
+        '1944-06-06',
+        '2027-04-01',
+        '2015-01-01',
+    ]
+
+    def create_chooser(self, *args, **kwargs):
+        from alho.gui import DateChooser
+        return DateChooser(tk.Tk(), *args, **kwargs)
+
+    def mkday(self, day):
+        return date(*(int(n) for n in day.split('-')))
+
+    def assert_day(self, chooser, day):
+        assert chooser.day == day
+        assert chooser.entry.get() == day.strftime('%Y-%m-%d')
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_init_day(self, day):
+        day = self.mkday(day)
+        chooser = self.create_chooser(day=day)
+        self.assert_day(chooser, day)
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_init_day_default(self, day, fake_time):
+        day = self.mkday(day)
+        fake_time.value = time.mktime(day.timetuple())
+        chooser = self.create_chooser()
+        self.assert_day(chooser, day)
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_set_day(self, day, fake_time):
+        day = self.mkday(day)
+        chooser = self.create_chooser()
+        chooser.day = day
+        self.assert_day(chooser, day)
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_set_day_via_entry(self, day, fake_time):
+        day = self.mkday(day)
+        chooser = self.create_chooser()
+        chooser.entry.delete(0, tk.END)
+        chooser.entry.insert(0, day.strftime('%Y-%m-%d'))
+        self.assert_day(chooser, day)
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_inc_button(self, day):
+        day = self.mkday(day)
+        chooser = self.create_chooser(day=day)
+        day += timedelta(days=1)
+        chooser.inc_button.invoke()
+        self.assert_day(chooser, day)
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_dec_button(self, day):
+        day = self.mkday(day)
+        chooser = self.create_chooser(day=day)
+        day -= timedelta(days=1)
+        chooser.dec_button.invoke()
+        self.assert_day(chooser, day)
+
+    @pytest.mark.parametrize('day', DATES)
+    def test_today_button(self, day, fake_time):
+        day = self.mkday(day)
+        chooser = self.create_chooser(day=date(2000, 1, 1))
+        fake_time.value = time.mktime(day.timetuple())
+        chooser.today_button.invoke()
+        self.assert_day(chooser, day)
+
+    def test_editable(self):
+        chooser = self.create_chooser()
+        widgets = [chooser.entry, chooser.inc_button, chooser.dec_button,
+                   chooser.today_button]
+        chooser.editable = True
+        assert chooser.editable
+        for widget in widgets:
+            assert 'disabled' not in widget.state()
+        chooser.editable = False
+        assert not chooser.editable
+        for widget in widgets:
+            assert 'disabled' in widget.state()
 
 
 class TestSpanListWidget:

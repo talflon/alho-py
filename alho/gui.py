@@ -18,6 +18,7 @@
 import re
 import time
 import tkinter as tk
+from datetime import date, timedelta
 from tkinter.ttk import Button, Entry, Frame
 
 
@@ -155,6 +156,9 @@ class SpanTagEntry(SavableEntry):
 TIME_FMT = '%Y-%m-%d %H:%M:%S'
 
 
+DATE_FMT = '%Y-%m-%d'
+
+
 def time_str_to_int(time_str):
     return int(time.mktime(time.strptime(time_str, TIME_FMT)))
 
@@ -193,6 +197,56 @@ class SpanWidget:
 
         self.tag_entry = SpanTagEntry(self)
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
+
+
+class DateChooser:
+
+    def __init__(self, master, day=None):
+        self.widget = Frame(master)
+        if day is None:
+            day = date.today()
+        self.var = tk.StringVar(self.widget)
+        self.day = day
+        self.dec_button = Button(self.widget, text='←',
+                                 command=self.on_dec_button)
+        self.dec_button.pack(side=tk.LEFT)
+        self.entry = Entry(self.widget, textvariable=self.var)
+        self.entry.pack(side=tk.LEFT)
+        self.today_button = Button(self.widget, text='today',
+                                   command=self.on_today_button)
+        self.today_button.pack(side=tk.LEFT)
+        self.inc_button = Button(self.widget, text='→',
+                                 command=self.on_inc_button)
+        self.inc_button.pack(side=tk.LEFT)
+
+    @property
+    def editable(self):
+        return self._editable
+
+    @editable.setter
+    def editable(self, value):
+        value = bool(value)
+        self._editable = value
+        for widget in (self.entry, self.dec_button, self.inc_button,
+                       self.today_button):
+            change_state(widget, disabled=not value)
+
+    @property
+    def day(self):
+        return date(*time.strptime(self.var.get(), DATE_FMT)[:3])
+
+    @day.setter
+    def day(self, value):
+        self.var.set(value.strftime(DATE_FMT))
+
+    def on_dec_button(self, *args):
+        self.day -= timedelta(days=1)
+
+    def on_inc_button(self, *args):
+        self.day += timedelta(days=1)
+
+    def on_today_button(self, *args):
+        self.day = date.today()
 
 
 class SpanListWidget:
