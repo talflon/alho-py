@@ -512,16 +512,13 @@ class TestSpanWidget:
         mock_db.get_tags.return_value = tags.copy()
         return self.create_span_widget(mock_db, span_id)
 
-    def test_initial_tag_value(self, mock_db, monkeypatch):
-        import alho.gui
-        monkeypatch.setattr(alho.gui, 'tag_set_to_str', Mock())
-        alho.gui.tag_set_to_str.return_value = '~* Success! *~'
+    def test_initial_tag_value(self, mock_db):
+        from alho.gui import tag_set_to_str
         tags = {'asdf', 'ghjkl'}
         span_widget = self.create_span_widget_for_values(mock_db, tags=tags)
         assert (span_widget.tag_entry.external_value ==
-                alho.gui.tag_set_to_str.return_value ==
+                tag_set_to_str(tags) ==
                 span_widget.tag_entry.entry.get())
-        alho.gui.tag_set_to_str.assert_called_with(tags)
 
     @pytest.mark.parametrize('time_str', [
         '2015-05-13 12:34:56',
@@ -577,7 +574,7 @@ class TestSpanWidget:
         mock_db.set_span.assert_called_with(span_id, new_t)
 
     def test_refresh(self, mock_db):
-        import alho.gui
+        from alho.gui import tag_set_to_str
         old_t = 77777777
         old_tags = {'one', 'two'}
         new_t = 88888888
@@ -595,7 +592,7 @@ class TestSpanWidget:
                 time.strftime(TIME_FMT, time.localtime(new_t)) ==
                 span_widget.start_entry.entry.get())
         assert (span_widget.tag_entry.external_value ==
-                alho.gui.tag_set_to_str(new_tags) ==
+                tag_set_to_str(new_tags) ==
                 span_widget.tag_entry.entry.get())
         mock_db.get_span.assert_called_with(span_id)
         mock_db.get_tags.assert_called_with(span_id)

@@ -136,8 +136,7 @@ class SavableEntry:
 class SpanTagEntry(SavableEntry):
 
     def __init__(self, span):
-        tags = span.db.get_tags(span.span_id)
-        super().__init__(span.widget, tag_set_to_str(tags))
+        super().__init__(span.widget)
         self.span = span
 
     def normalize(self, value):
@@ -174,8 +173,7 @@ def time_int_to_str(time_int):
 class SpanStartEntry(SavableEntry):
 
     def __init__(self, span):
-        start_time = time_int_to_str(span.db.get_span(span.span_id).edited.time)
-        super().__init__(span.widget, start_time)
+        super().__init__(span.widget)
         self.span = span
 
     def normalize(self, value):
@@ -205,6 +203,8 @@ class SpanWidget:
 
         self.tag_entry = SpanTagEntry(self)
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
+
+        self.refresh()
 
     def refresh(self):
         self.start_entry.refresh()
