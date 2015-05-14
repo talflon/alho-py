@@ -152,6 +152,10 @@ class SpanTagEntry(SavableEntry):
             self.span.db.add_tag(self.span.span_id, tag)
         super().save()
 
+    def refresh(self):
+        self.external_value = tag_set_to_str(
+            self.span.db.get_tags(self.span.span_id))
+
 
 TIME_FMT = '%Y-%m-%d %H:%M:%S'
 
@@ -184,6 +188,10 @@ class SpanStartEntry(SavableEntry):
             self.span.db.set_span(self.span.span_id, new_int)
         super().save()
 
+    def refresh(self):
+        self.external_value = time_int_to_str(
+            self.span.db.get_span(self.span.span_id).edited.time)
+
 
 class SpanWidget:
 
@@ -197,6 +205,10 @@ class SpanWidget:
 
         self.tag_entry = SpanTagEntry(self)
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
+
+    def refresh(self):
+        self.start_entry.refresh()
+        self.tag_entry.refresh()
 
 
 class DateChooserEntry(SavableEntry):

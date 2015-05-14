@@ -575,3 +575,27 @@ class TestSpanWidget:
         span_widget.start_entry.edited_value = time_str
         span_widget.start_entry.save()
         mock_db.set_span.assert_called_with(span_id, new_t)
+
+    def test_refresh(self, mock_db):
+        import alho.gui
+        old_t = 77777777
+        old_tags = {'one', 'two'}
+        new_t = 88888888
+        new_tags = {'three', '4'}
+        span_id = 5
+        span_widget = self.create_span_widget_for_values(mock_db,
+                                                         span_id=span_id,
+                                                         t=old_t,
+                                                         tags=old_tags)
+        mock_db.get_span.return_value = create_span_edit(mock_db.location,
+                                                         span_id, new_t)
+        mock_db.get_tags.return_value = new_tags.copy()
+        span_widget.refresh()
+        assert (span_widget.start_entry.external_value ==
+                time.strftime(TIME_FMT, time.localtime(new_t)) ==
+                span_widget.start_entry.entry.get())
+        assert (span_widget.tag_entry.external_value ==
+                alho.gui.tag_set_to_str(new_tags) ==
+                span_widget.tag_entry.entry.get())
+        mock_db.get_span.assert_called_with(span_id)
+        mock_db.get_tags.assert_called_with(span_id)
