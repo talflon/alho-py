@@ -1,4 +1,5 @@
 import time
+import tkinter as tk
 
 import pytest
 
@@ -36,3 +37,8 @@ def fake_times(request, monkeypatch):
     fake = FakeTime(1234.56, inc=request.param)
     monkeypatch.setattr(time, 'time', fake)
     return fake
+
+
+@pytest.fixture(scope='session')
+def tk_main_win():
+    return tk.Tk()

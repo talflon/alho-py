@@ -26,9 +26,8 @@ def mock_db(fake_time):
     return db
 
 
-def create_span_list(db):
+def create_span_list(db, win):
     from alho.gui import SpanListWidget
-    win = tk.Tk()
     span_list = SpanListWidget(win, db)
     span_list.widget.pack()
     return span_list
@@ -38,8 +37,9 @@ def create_span_edit(loc, span_id, t):
     from alho.db import SpanEdit, TimeStamp
     return SpanEdit(TimeStamp(t, loc, 0), span_id, t)
 
-def create_span_list_with_spans(mock_db, num_spans):
-    span_list = create_span_list(mock_db)
+
+def create_span_list_with_spans(mock_db, win, num_spans):
+    span_list = create_span_list(mock_db, win)
     db = span_list.db
     for span_id in range(1, num_spans + 1):
         span_edit = create_span_edit(db.location, span_id, 10000 + span_id)
@@ -51,18 +51,18 @@ def create_span_list_with_spans(mock_db, num_spans):
 
 
 @pytest.fixture
-def span_list_empty(mock_db):
-    return create_span_list(mock_db)
+def span_list_empty(mock_db, tk_main_win):
+    return create_span_list(mock_db, tk_main_win)
 
 
 @pytest.fixture
-def span_list_with_spans(mock_db):
-    return create_span_list_with_spans(mock_db, 5)
+def span_list_with_spans(mock_db, tk_main_win):
+    return create_span_list_with_spans(mock_db, tk_main_win, 5)
 
 
 @pytest.fixture(params=[0, 1, 5])
-def span_list(mock_db, request):
-    return create_span_list_with_spans(mock_db, request.param)
+def span_list(mock_db, request, tk_main_win):
+    return create_span_list_with_spans(mock_db, tk_main_win, request.param)
 
 
 class TestTagSetMethods:
@@ -104,18 +104,16 @@ class TestTagSetMethods:
 class TestSavableEntry:
 
     @pytest.fixture
-    def entry(self):
+    def entry(self, tk_main_win):
         from alho.gui import SavableEntry
-        win = tk.Tk()
-        entry = SavableEntry(win)
+        entry = SavableEntry(tk_main_win)
         entry.widget.pack()
         return entry
 
     @pytest.mark.parametrize('value', ['', 'Q', 'oh say, can you seeeeee'])
-    def test_initial_value(self, value):
+    def test_initial_value(self, value, tk_main_win):
         from alho.gui import SavableEntry
-        win = tk.Tk()
-        entry = SavableEntry(win, value)
+        entry = SavableEntry(tk_main_win, value)
         entry.widget.pack()
         assert entry.external_value == value
         assert entry.edited_value == value
@@ -282,9 +280,13 @@ class TestDateChooser:
         '2015-01-01',
     ]
 
+    @pytest.fixture(autouse=True)
+    def main_win(self, tk_main_win):
+        self.win = tk_main_win
+
     def create_chooser(self, *args, **kwargs):
         from alho.gui import DateChooser
-        return DateChooser(tk.Tk(), *args, **kwargs)
+        return DateChooser(self.win, *args, **kwargs)
 
     def mkday(self, day):
         return date(*(int(n) for n in day.split('-')))
@@ -469,9 +471,13 @@ TIME_FMT = '%Y-%m-%d %H:%M:%S'
 
 class TestSpanWidget:
 
+    @pytest.fixture(autouse=True)
+    def main_win(self, tk_main_win):
+        self.win = tk_main_win
+
     def create_span_widget(self, db, span_id=1):
         from alho.gui import SpanWidget
-        span_widget = SpanWidget(tk.Tk(), db, span_id)
+        span_widget = SpanWidget(self.win, db, span_id)
         span_widget.widget.pack()
         return span_widget
 
