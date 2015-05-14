@@ -17,7 +17,8 @@ def assert_widget_shown(widget):
 
 
 @pytest.fixture
-def mock_db():
+def mock_db(fake_time):
+    fake_time.inc = 1.38
     db = Mock()
     db.location = 11111
     return db
