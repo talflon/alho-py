@@ -385,13 +385,18 @@ class SpanListWidget:
         span_edits = self.db.get_spans(start_time, start_time + 86400)
         for span in self.spans:
             span.widget.pack_forget()
+        old_spans = {span.span_id: span for span in self.spans}
         self.spans = []
         for edit in span_edits:
-            span = SpanWidget(self.span_box, self.db, edit.span_id)
+            try:
+                span = old_spans[edit.span_id]
+            except KeyError:
+                span = SpanWidget(self.span_box, self.db, edit.span_id)
             self.spans.append(span)
             span.widget.pack()
             change_state(self.edit_button, disabled=self.editing)
             span.start_entry.editable = span.tag_entry.editable = self.editing
+            span.refresh()
 
 
 if __name__ == '__main__':

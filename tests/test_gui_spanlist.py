@@ -492,6 +492,7 @@ class TestSpanListWidget:
 
     def refresh_and_assert_spans_match(self, span_list, span_edits):
         from alho.gui import SpanWidget
+        old_spans = {span.span_id: span for span in span_list.spans}
         span_list.db.get_spans.return_value = span_edits
         mock_refresh = Mock()
         with mock.patch.object(SpanWidget, 'refresh',
@@ -503,6 +504,8 @@ class TestSpanListWidget:
                                      span_list.span_box.pack_slaves()):
             assert span.widget is span_widget
             assert call(span) in mock_refresh.call_args_list
+            if span.span_id in old_spans:
+                assert span is old_spans[span.span_id]
 
     @pytest.mark.parametrize('before,after', [
         ("[(1, '12:34:56')]",
@@ -512,15 +515,15 @@ class TestSpanListWidget:
         ("[(7, '08:08:08'), (1, '08:09:10')]",
          "[(5, '00:00:00'), (3, '00:00:03')]"),
         ("[(2, '11:11:11')]",
-         "[(2, '11:11:11'), (5, '12:00:00')]"),
+         "[(2, '11:10:11'), (5, '12:00:00')]"),
         ("[(2, '11:11:11')]",
-         "[(2, '11:11:11'), (5, '10:00:00')]"),
+         "[(2, '11:10:11'), (5, '10:00:00')]"),
         ("[(4, '15:01:30'), (7, '15:03:22')]",
-         "[(7, '15:03:22')]"),
+         "[(7, '15:04:22')]"),
         ("[(4, '15:01:30'), (7, '15:03:22')]",
-         "[(4, '15:01:30')]"),
+         "[(4, '15:01:31')]"),
         ("[(1, '09:05:30'), (2, '09:10:00')]",
-         "[(2, '09:10:00'), (3, '08:05:15')]"),
+         "[(2, '10:10:00'), (3, '08:05:15')]"),
     ])
     def test_refresh_spans(self, span_list_empty, before, after):
         span_list = span_list_empty
