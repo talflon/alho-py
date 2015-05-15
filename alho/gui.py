@@ -328,6 +328,8 @@ class SpanListWidget:
         self.switch_tags.widget.pack(side=tk.LEFT)
         self.switch_box.pack()
 
+        self.refresh()
+
     @property
     def editing(self):
         return self._editing

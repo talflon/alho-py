@@ -24,6 +24,7 @@ def mock_db(fake_time):
     fake_time.inc = 1.38
     db = Mock()
     db.location = 11111
+    db.get_spans.return_value = []
     return db
 
 
@@ -551,7 +552,6 @@ class TestSpanListWidget:
         day_start = time.mktime(day.timetuple())
         day_end = time.mktime((day + timedelta(days=1)).timetuple())
         span_list.date_chooser.day = day
-        db.get_spans.return_value = []
         span_list.refresh()
         db.get_spans.assert_called_with(day_start, day_end)
 
