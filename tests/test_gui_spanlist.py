@@ -506,6 +506,9 @@ class TestSpanListWidget:
             assert call(span) in mock_refresh.call_args_list
             if span.span_id in old_spans:
                 assert span is old_spans[span.span_id]
+                del old_spans[span.span_id]
+        for span in old_spans.values():  # unused old spans must be destroyed
+            assert not span.widget.winfo_exists()
 
     @pytest.mark.parametrize('before,after', [
         ("[(1, '12:34:56')]",

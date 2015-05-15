@@ -389,7 +389,7 @@ class SpanListWidget:
         self.spans = []
         for edit in span_edits:
             try:
-                span = old_spans[edit.span_id]
+                span = old_spans.pop(edit.span_id)
             except KeyError:
                 span = SpanWidget(self.span_box, self.db, edit.span_id)
             self.spans.append(span)
@@ -397,6 +397,8 @@ class SpanListWidget:
             change_state(self.edit_button, disabled=self.editing)
             span.start_entry.editable = span.tag_entry.editable = self.editing
             span.refresh()
+        for span in old_spans.values():
+            span.widget.destroy()
 
 
 if __name__ == '__main__':
