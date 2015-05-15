@@ -2,9 +2,9 @@ import time
 import tkinter as tk
 from datetime import date, timedelta
 
-import mock
 import pytest
-from mock import Mock, call
+from unittest import mock
+from unittest.mock import Mock, call
 
 
 def assert_widget_shown(widget):
