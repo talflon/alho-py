@@ -380,6 +380,19 @@ class SpanListWidget:
         span.start_entry.editable = span.tag_entry.editable = self.editing
         return span
 
+    def refresh(self):
+        start_time = time.mktime(self.date_chooser.day.timetuple())
+        span_edits = self.db.get_spans(start_time, start_time + 86400)
+        for span in self.spans:
+            span.widget.pack_forget()
+        self.spans = []
+        for edit in span_edits:
+            span = SpanWidget(self.span_box, self.db, edit.span_id)
+            self.spans.append(span)
+            span.widget.pack()
+            change_state(self.edit_button, disabled=self.editing)
+            span.start_entry.editable = span.tag_entry.editable = self.editing
+
 
 if __name__ == '__main__':
     from .db import Database, create_tables

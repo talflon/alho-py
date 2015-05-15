@@ -2,6 +2,7 @@ import time
 import tkinter as tk
 from datetime import date, timedelta
 
+import mock
 import pytest
 from mock import Mock, call
 
@@ -488,6 +489,65 @@ class TestSpanListWidget:
             assert 'disabled' in span_list.edit_button.state()
             assert 'disabled' in span_list.revert_button.state()
             assert 'disabled' in span_list.save_button.state()
+
+    def refresh_and_assert_spans_match(self, span_list, span_edits):
+        from alho.gui import SpanWidget
+        span_list.db.get_spans.return_value = span_edits
+        mock_refresh = Mock()
+        with mock.patch.object(SpanWidget, 'refresh',
+                               lambda sw: mock_refresh(sw)):
+            span_list.refresh()
+        assert ([span.span_id for span in span_list.spans] ==
+                [edit.span_id for edit in span_edits])
+        for span, span_widget in zip(span_list.spans,
+                                     span_list.span_box.pack_slaves()):
+            assert span.widget is span_widget
+            assert call(span) in mock_refresh.call_args_list
+
+    @pytest.mark.parametrize('before,after', [
+        ("[(1, '12:34:56')]",
+         "[]"),
+        ("[]",
+         "[(5, '00:00:00'), (3, '00:00:03')]"),
+        ("[(7, '08:08:08'), (1, '08:09:10')]",
+         "[(5, '00:00:00'), (3, '00:00:03')]"),
+        ("[(2, '11:11:11')]",
+         "[(2, '11:11:11'), (5, '12:00:00')]"),
+        ("[(2, '11:11:11')]",
+         "[(2, '11:11:11'), (5, '10:00:00')]"),
+        ("[(4, '15:01:30'), (7, '15:03:22')]",
+         "[(7, '15:03:22')]"),
+        ("[(4, '15:01:30'), (7, '15:03:22')]",
+         "[(4, '15:01:30')]"),
+        ("[(1, '09:05:30'), (2, '09:10:00')]",
+         "[(2, '09:10:00'), (3, '08:05:15')]"),
+    ])
+    def test_refresh_spans(self, span_list_empty, before, after):
+        span_list = span_list_empty
+        db = span_list.db
+
+        def time_int(s):
+            return int(time.mktime(time.strptime('2013-05-19 ' + s, TIME_FMT)))
+
+        before = [create_span_edit(db.loc, i, time_int(t))
+                  for i, t in eval(before)]
+        after = [create_span_edit(db.loc, i, time_int(t))
+                 for i, t in eval(after)]
+        for span_edit_list in before, after:
+            span_edit_list.sort(key=lambda edit: edit.started)
+        self.refresh_and_assert_spans_match(span_list, before)
+        self.refresh_and_assert_spans_match(span_list, after)
+
+    def test_refresh_calling_get_spans(self, span_list_empty, fake_time):
+        span_list = span_list_empty
+        db = span_list.db
+        day = date(2020, 3, 1)
+        day_start = time.mktime(day.timetuple())
+        day_end = time.mktime((day + timedelta(days=1)).timetuple())
+        span_list.date_chooser.day = day
+        db.get_spans.return_value = []
+        span_list.refresh()
+        db.get_spans.assert_called_with(day_start, day_end)
 
 
 TIME_FMT = '%Y-%m-%d %H:%M:%S'
