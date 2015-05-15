@@ -365,8 +365,10 @@ class SpanListWidget:
             else:
                 something_invalid = True
         self.editing = something_invalid
+        self.refresh()
 
     def on_revert_button(self, *args):
+        self.refresh()
         for entry in self.all_span_entries():
             entry.revert()
         self.editing = False
