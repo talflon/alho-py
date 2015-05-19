@@ -125,6 +125,9 @@ class SwitchTagEntry(SavableEntry):
         self.entry.bind('<Key-Return>', self.on_key_return)
         self.entry.bind('<Key-Escape>', self.on_key_escape)
 
+    def normalize(self, value):
+        return tag_set_to_str(tag_str_to_set(value))
+
     def on_key_return(self, *args):
         if self.proposed_valid:
             self.save()
@@ -134,6 +137,11 @@ class SwitchTagEntry(SavableEntry):
 
     def save(self):
         self.span_list.on_switch_button()
+
+    def on_edited_change(self, *args):
+        super().on_edited_change(*args)
+        change_state(self.span_list.switch_button,
+                     disabled=not self.proposed_valid)
 
 
 class SpanListWidget:

@@ -157,6 +157,15 @@ class TestSpanListWidget:
         assert span.start_entry.editable
         assert span.tag_entry.editable
 
+    def test_switch_button_enabled_valid_tags(self, span_list):
+        assert 'disabled' not in span_list.switch_button.state()
+        span_list.switch_tags.edited_value = 'a,b, c'
+        assert 'disabled' not in span_list.switch_button.state()
+
+    def test_switch_button_disabled_invalid_tags(self, span_list):
+        span_list.switch_tags.edited_value = '~~~|:-)|~~~'
+        assert 'disabled' in span_list.switch_button.state()
+
     def test_edit_button(self, span_list_with_spans):
         span_list = span_list_with_spans
         span_list.editing = False
