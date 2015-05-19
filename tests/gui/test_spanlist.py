@@ -7,16 +7,27 @@ from unittest import mock
 from unittest.mock import Mock, call
 
 
-def assert_widget_shown(widget):
-    try:
-        pack_info = widget.info()
-    except tk.TclError:
-        pack_info = None
-    try:
-        grid_info = widget.grid_info()
-    except tk.TclError:
-        grid_info = None
-    assert pack_info or grid_info or widget.place_info()
+def widget_shown(widget):
+    """Tests if this widget and all its parents are set to be shown.
+
+    Does so by checking if all but the toplevel window have been
+    `pack()`ed, `grid()`ded, or `place()`d. This allows us to test without
+    actually making anything visible on the screen, unlike with
+    `winfo_ismapped()`.
+    """
+    while widget.master is not None:
+        try:
+            pack_info = widget.info()
+        except tk.TclError:
+            pack_info = None
+        try:
+            grid_info = widget.grid_info()
+        except tk.TclError:
+            grid_info = None
+        if not(pack_info or grid_info or widget.place_info()):
+            return False
+        widget = widget.master
+    return True
 
 
 @pytest.fixture
@@ -118,9 +129,8 @@ class TestSpanListWidget:
         db.get_tags.assert_called_with(span_edit.span_id)
 
         span_widget = span_list.spans[-1]
-        assert_widget_shown(span_widget.widget)
-        assert_widget_shown(span_widget.tag_entry.widget)
-        assert_widget_shown(span_widget.start_entry.widget)
+        assert widget_shown(span_widget.tag_entry.widget)
+        assert widget_shown(span_widget.start_entry.widget)
 
     def test_switch_with_tags(self, span_list):
         db = span_list.db
@@ -165,6 +175,13 @@ class TestSpanListWidget:
     def test_switch_button_disabled_invalid_tags(self, span_list):
         span_list.switch_tags.edited_value = '~~~|:-)|~~~'
         assert 'disabled' in span_list.switch_button.state()
+
+    def test_switch_button_visibility_changing_date(self, span_list, fake_time):
+        assert widget_shown(span_list.switch_button)
+        span_list.date_chooser.day = date(1980, 1, 2)
+        assert not widget_shown(span_list.switch_button)
+        span_list.date_chooser.day = date(*time.localtime(fake_time.value)[:3])
+        assert widget_shown(span_list.switch_button)
 
     def test_edit_button(self, span_list_with_spans):
         span_list = span_list_with_spans

@@ -238,6 +238,10 @@ class SpanListWidget:
 
     def refresh(self):
         start_time = time.mktime(self.date_chooser.day.timetuple())
+        if start_time <= time.time() < start_time + 86400:
+            self.switch_box.pack()
+        else:
+            self.switch_box.pack_forget()
         span_edits = self.db.get_spans(start_time, start_time + 86400)
         for span in self.spans:
             span.widget.pack_forget()
