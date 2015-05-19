@@ -125,6 +125,7 @@ class SpanListWidget:
         self.spans = []
 
         self.date_chooser = DateChooser(self.widget)
+        self.date_chooser.on_day_set = lambda d: self.refresh()
         self.date_chooser.widget.pack()
 
         self.edit_box = Frame(self.widget)
