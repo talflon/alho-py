@@ -134,6 +134,24 @@ class Database:
         """.format(SpanEdit.COLUMNS), [time_from, time_to]):
             yield SpanEdit.from_row(row)
 
+    def get_next_span(self, span_id):
+        span = self.get_span(span_id)
+        cursor = self.conn.execute("""
+          select {}
+            from span as t1
+            where (started > ?
+                or (started = ? and edit_time > ?))
+              and not exists(select 1
+                from span as t2
+                where t1.span_id = t2.span_id
+                  and t2.edit_time > t1.edit_time)
+            order by started, edit_time
+            limit 1
+        """.format(SpanEdit.COLUMNS), [span.started, span.started,
+                                       span.edited.as_int])
+        row = cursor.fetchone()
+        return SpanEdit.from_row(row) if row is not None else None
+
     def add_tag(self, span_id, name):
         return self.set_tag(span_id, name, 1)
 

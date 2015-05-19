@@ -191,3 +191,16 @@ def test_tag_history(db, fake_times):
     assert list(db.get_tag_history(span.span_id)) == [edit0, edit1]
     edit2 = db.remove_tag(span.span_id, 'x')
     assert list(db.get_tag_history(span.span_id)) == [edit0, edit1, edit2]
+
+
+def test_get_next_span(db, fake_times):
+    db.set_span(3, 100)
+    db.set_span(4, 101)
+    assert db.get_next_span(3).span_id == 4
+    assert db.get_next_span(4) is None
+    db.set_span(3, 102)
+    assert db.get_next_span(4).span_id == 3
+    assert db.get_next_span(3) is None
+    db.set_span(4, 102)
+    assert db.get_next_span(3).span_id == 4
+    assert db.get_next_span(4) is None
