@@ -29,6 +29,8 @@ from .util import SavableEntry
 parser = argparse.ArgumentParser(description='Track your time with Alho.')
 parser.add_argument('-f', '--file', default='~/.alho.db',
                     help="SQLite DB file to use. Created if doesn't exist.")
+parser.add_argument('-i', '--interactive', action='store_true',
+                    help='Run interactive Python interpreter after startup.')
 args = parser.parse_args()
 
 filename = os.path.normpath(os.path.expanduser(args.file))
@@ -39,5 +41,11 @@ if not already_existed:
 
 win = tk.Tk()
 SavableEntry.set_theme_defaults(win)
-SpanListWidget(win, Database(conn, random.getrandbits(31))).widget.pack()
-win.mainloop()
+db = Database(conn, random.getrandbits(31))
+span_list = SpanListWidget(win, db)
+span_list.widget.pack()
+if args.interactive:
+    import code
+    code.interact(local=vars())
+else:
+    win.mainloop()
