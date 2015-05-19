@@ -117,6 +117,25 @@ class SpanWidget:
         self.tag_entry.refresh()
 
 
+class SwitchTagEntry(SavableEntry):
+
+    def __init__(self, span_list, master):
+        super().__init__(master, editable=True)
+        self.span_list = span_list
+        self.entry.bind('<Key-Return>', self.on_key_return)
+        self.entry.bind('<Key-Escape>', self.on_key_escape)
+
+    def on_key_return(self, *args):
+        if self.proposed_valid:
+            self.save()
+
+    def on_key_escape(self, *args):
+        self.revert()
+
+    def save(self):
+        self.span_list.on_switch_button()
+
+
 class SpanListWidget:
 
     def __init__(self, master, db):
@@ -149,9 +168,7 @@ class SpanListWidget:
         self.switch_button = Button(self.switch_box, text='switch',
                                     command=self.on_switch_button)
         self.switch_button.pack(side=tk.LEFT)
-        self.switch_tags = SavableEntry(self.switch_box)
-        self.switch_tags.save = self.on_switch_button
-        self.switch_tags.editable = True
+        self.switch_tags = SwitchTagEntry(self, self.switch_box)
         self.switch_tags.widget.pack(side=tk.LEFT)
         self.switch_box.pack()
 
