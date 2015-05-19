@@ -15,6 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import argparse
+import os.path
 import sqlite3
 import random
 import tkinter as tk
@@ -23,8 +25,17 @@ from ..db import Database, create_tables
 from . import SpanListWidget
 
 
-conn = sqlite3.connect(':memory:')
-create_tables(conn)
+parser = argparse.ArgumentParser(description='Track your time with Alho.')
+parser.add_argument('-f', '--file', default='~/.alho.db',
+                    help="SQLite DB file to use. Created if doesn't exist.")
+args = parser.parse_args()
+
+filename = os.path.normpath(os.path.expanduser(args.file))
+already_existed = os.path.exists(filename)
+conn = sqlite3.connect(filename)
+if not already_existed:
+    create_tables(conn)
+
 win = tk.Tk()
 SpanListWidget(win, Database(conn, random.getrandbits(31))).widget.pack()
 win.mainloop()
