@@ -18,7 +18,7 @@
 import time
 import tkinter as tk
 from datetime import date, timedelta
-from tkinter.ttk import Button, Entry, Frame
+from tkinter.ttk import Button, Entry, Frame, Style
 
 
 DATE_FMT = '%Y-%m-%d'
@@ -48,10 +48,21 @@ def change_state(widget, **flags):
 
 class SavableEntry:
 
-    def __init__(self, master, value='', editable=False):
+    STYLE_NAME = 'Savable.TEntry'
+
+    STYLE_DEFAULTS = {
+        'map': {
+            'fieldbackground': [('invalid', 'red'), ('alternate', 'yellow')],
+        }
+    }
+
+    def __init__(self, master, value='', editable=False, style=None):
         self.edited_var = tk.StringVar(master)
         self.edited_var.set(value)
-        self.widget = self.entry = Entry(master, textvariable=self.edited_var)
+        if style is None:
+            style = self.STYLE_NAME
+        self.widget = self.entry = Entry(master, textvariable=self.edited_var,
+                                         style=style)
         self._external_value = value
         self.editable = editable
         self.edited_var.trace('w', self.on_edited_change)
@@ -114,6 +125,15 @@ class SavableEntry:
         change_state(self.entry,
                      alternate=self.proposed_value != self.external_value,
                      invalid=not self.proposed_valid)
+
+    @classmethod
+    def set_theme_defaults(cls, master, theme_name='default', style_name=None):
+        style = Style(master)
+        if style_name is None:
+            style_name = cls.STYLE_NAME
+        style.theme_settings(theme_name, {
+            style_name: cls.STYLE_DEFAULTS
+        })
 
 
 class DateChooserEntry(SavableEntry):

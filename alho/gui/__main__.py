@@ -23,6 +23,7 @@ import tkinter as tk
 
 from ..db import Database, create_tables
 from . import SpanListWidget
+from .util import SavableEntry
 
 
 parser = argparse.ArgumentParser(description='Track your time with Alho.')
@@ -37,5 +38,6 @@ if not already_existed:
     create_tables(conn)
 
 win = tk.Tk()
+SavableEntry.set_theme_defaults(win)
 SpanListWidget(win, Database(conn, random.getrandbits(31))).widget.pack()
 win.mainloop()
