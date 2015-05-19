@@ -190,7 +190,9 @@ class TestDateChooser:
 
     def create_chooser(self, *args, **kwargs):
         from alho.gui import DateChooser
-        return DateChooser(self.win, *args, **kwargs)
+        chooser = DateChooser(self.win, *args, **kwargs)
+        chooser.on_day_set = Mock()
+        return chooser
 
     def mkday(self, day):
         return date(*(int(n) for n in day.split('-')))
@@ -218,6 +220,7 @@ class TestDateChooser:
         chooser = self.create_chooser()
         chooser.day = day
         self.assert_day(chooser, day)
+        chooser.on_day_set.assert_called_with(day)
 
     @pytest.mark.parametrize('day', DATES)
     def test_set_day_via_entry_save(self, day, fake_time):
@@ -226,6 +229,7 @@ class TestDateChooser:
         chooser.entry.edited_value = day.strftime('%Y-%m-%d')
         chooser.entry.save()
         self.assert_day(chooser, day)
+        chooser.on_day_set.assert_called_with(day)
 
     @pytest.mark.parametrize('day', DATES)
     def test_inc_button(self, day):
@@ -234,6 +238,7 @@ class TestDateChooser:
         day += timedelta(days=1)
         chooser.inc_button.invoke()
         self.assert_day(chooser, day)
+        chooser.on_day_set.assert_called_with(day)
 
     @pytest.mark.parametrize('day', DATES)
     def test_dec_button(self, day):
@@ -242,6 +247,7 @@ class TestDateChooser:
         day -= timedelta(days=1)
         chooser.dec_button.invoke()
         self.assert_day(chooser, day)
+        chooser.on_day_set.assert_called_with(day)
 
     @pytest.mark.parametrize('day', DATES)
     def test_today_button(self, day, fake_time):
@@ -250,6 +256,7 @@ class TestDateChooser:
         fake_time.value = time.mktime(day.timetuple())
         chooser.today_button.invoke()
         self.assert_day(chooser, day)
+        chooser.on_day_set.assert_called_with(day)
 
     def test_editable(self):
         chooser = self.create_chooser()
@@ -275,6 +282,7 @@ class TestDateChooser:
         assert (chooser.entry.external_value ==
                 today.strftime('%Y-%m-%d') ==
                 chooser.entry.edited_value)
+        chooser.on_day_set.assert_called_with(today)
 
     def test_editable_with_invalid_entry(self, fake_time):
         chooser = self.create_chooser()

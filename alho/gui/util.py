@@ -143,6 +143,10 @@ class DateChooserEntry(SavableEntry):
         super().on_edited_change(*args)
         self.chooser.editable = self.chooser.editable
 
+    def save(self):
+        super().save()
+        self.chooser.on_day_set(self.chooser.day)
+
 
 class DateChooser:
 
@@ -185,6 +189,7 @@ class DateChooser:
     @day.setter
     def day(self, value):
         self.entry.external_value = value.strftime(DATE_FMT)
+        self.on_day_set(value)
 
     def on_dec_button(self, *args):
         self.day -= timedelta(days=1)
@@ -195,3 +200,6 @@ class DateChooser:
     def on_today_button(self, *args):
         self.entry.revert()
         self.day = date.today()
+
+    def on_day_set(self, day):
+        pass
