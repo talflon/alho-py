@@ -130,6 +130,7 @@ class TestSpanListWidget:
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
         db.get_tags.return_value = tags.copy()
+        assert span_list.switch_tags.editable
         span_list.switch_tags.edited_value = tag_set_to_str(tags)
         span_list.switch_button.invoke()
 

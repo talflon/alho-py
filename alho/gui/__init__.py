@@ -151,6 +151,7 @@ class SpanListWidget:
         self.switch_button.pack(side=tk.LEFT)
         self.switch_tags = SavableEntry(self.switch_box)
         self.switch_tags.save = self.on_switch_button
+        self.switch_tags.editable = True
         self.switch_tags.widget.pack(side=tk.LEFT)
         self.switch_box.pack()
 
