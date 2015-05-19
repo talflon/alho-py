@@ -38,6 +38,15 @@ def create_tables(conn):
             active int not null
           )
         """)
+        conn.execute("""
+          create view current_span as
+            select *
+            from span as cur_span
+            where not exists(select 1
+              from span as newer_span
+              where newer_span.span_id = cur_span.span_id
+                and newer_span.edit_time > cur_span.edit_time)
+        """)
 
 
 class Database:
@@ -74,11 +83,7 @@ class Database:
     def get_last_span(self):
         cursor = self.conn.execute("""
           select {}
-            from span as t1
-            where not exists(select 1
-                from span as t2
-                where t1.span_id = t2.span_id
-                  and t2.edit_time > t1.edit_time)
+            from current_span
             order by started desc, edit_time desc
             limit 1
         """.format(SpanEdit.COLUMNS))
@@ -124,12 +129,8 @@ class Database:
     def get_spans(self, time_from, time_to):
         for row in self.conn.execute("""
           select {}
-            from span as t1
+            from current_span
             where started between ? and ?
-              and not exists(select 1
-                from span as t2
-                where t1.span_id = t2.span_id
-                  and t2.edit_time > t1.edit_time)
             order by started, edit_time
         """.format(SpanEdit.COLUMNS), [time_from, time_to]):
             yield SpanEdit.from_row(row)
@@ -138,13 +139,9 @@ class Database:
         span = self.get_span(span_id)
         cursor = self.conn.execute("""
           select {}
-            from span as t1
+            from current_span
             where (started > ?
                 or (started = ? and edit_time > ?))
-              and not exists(select 1
-                from span as t2
-                where t1.span_id = t2.span_id
-                  and t2.edit_time > t1.edit_time)
             order by started, edit_time
             limit 1
         """.format(SpanEdit.COLUMNS), [span.started, span.started,
