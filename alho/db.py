@@ -47,6 +47,16 @@ def create_tables(conn):
               where newer_span.span_id = cur_span.span_id
                 and newer_span.edit_time > cur_span.edit_time)
         """)
+        conn.execute("""
+          create view current_span_tag as
+            select *
+            from span_tag as cur_span_tag
+            where not exists(select 1
+              from span_tag as newer_span_tag
+              where newer_span_tag.span_id = cur_span_tag.span_id
+                and newer_span_tag.name = cur_span_tag.name
+                and newer_span_tag.edit_time > cur_span_tag.edit_time)
+        """)
 
 
 class Database:
@@ -172,14 +182,9 @@ class Database:
     def get_tags(self, span_id):
         cursor = self.conn.execute("""
           select name
-            from span_tag as t1
+            from current_span_tag
             where span_id = ?
               and active
-              and not exists(select 1
-                from span_tag as t2
-                where t2.span_id = t1.span_id
-                  and t2.name = t1.name
-                  and t2.edit_time > t1.edit_time)
         """, [span_id])
         return set(row[0] for row in cursor)
 
