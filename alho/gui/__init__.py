@@ -18,7 +18,8 @@
 import re
 import time
 import tkinter as tk
-from tkinter.ttk import Button, Frame
+from datetime import timedelta
+from tkinter.ttk import Button, Frame, Label
 
 from .util import change_state, SavableEntry, DateChooser
 
@@ -109,6 +110,9 @@ class SpanWidget:
         self.start_entry = SpanStartEntry(self)
         self.start_entry.widget.pack(side=tk.LEFT)
 
+        self.elapsed_label = Label(self.widget)
+        self.elapsed_label.pack(side=tk.LEFT)
+
         self.tag_entry = SpanTagEntry(self)
         self.tag_entry.widget.pack(side=tk.LEFT, fill=tk.X)
 
@@ -117,6 +121,12 @@ class SpanWidget:
     def refresh(self):
         self.start_entry.refresh()
         self.tag_entry.refresh()
+        next_span = self.db.get_next_span(self.span_id)
+        if next_span is None:
+            self.elapsed_label['text'] = 'ongoing'
+        else:
+            secs = next_span.started - self.db.get_span(self.span_id).started
+            self.elapsed_label['text'] = str(timedelta(seconds=secs))
 
 
 class SwitchTagEntry(SavableEntry):

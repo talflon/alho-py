@@ -36,6 +36,8 @@ def mock_db(fake_time):
     db = Mock()
     db.location = 11111
     db.get_spans.return_value = []
+    db.get_next_span.return_value = None
+    db.get_tags.return_value = set()
     return db
 
 
@@ -60,7 +62,6 @@ def create_span_list_with_spans(mock_db, win, num_spans):
         return [edit for edit in spans if edit.span_id == span_id][0]
     db.get_span = get_span
     db.get_spans.return_value = spans
-    db.get_tags.return_value = {}
     span_list.refresh()
     return span_list
 
@@ -159,7 +160,7 @@ class TestSpanListWidget:
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
         db.get_spans.return_value += [span_edit]
-        db.get_tags.return_value = {}
+        db.get_tags.return_value = set()
         span_list.editing = False
         span_list.switch_button.invoke()
         span = span_list.spans[-1]
@@ -423,3 +424,20 @@ class TestSpanWidget:
                 span_widget.tag_entry.entry.get())
         mock_db.get_span.assert_called_with(span_id)
         mock_db.get_tags.assert_called_with(span_id)
+
+    @pytest.mark.parametrize('seconds', [
+        0,
+        1,
+        41232,
+        86399,
+    ])
+    def test_elapsed_time(self, mock_db, seconds):
+        t0 = 28347829
+        span1 = create_span_edit(mock_db.location, 1, t0)
+        span2 = create_span_edit(mock_db.location, 2, t0 + seconds)
+        mock_db.get_span.return_value = span1
+        mock_db.get_tags.return_value = set()
+        mock_db.get_next_span.return_value = span2
+        span_widget = self.create_span_widget(mock_db, span1.span_id)
+        assert (span_widget.elapsed_label['text'] ==
+                str(timedelta(seconds=seconds)))
