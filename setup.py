@@ -30,6 +30,7 @@ setup(
     ],
     tests_require=[
         'pytest>=2.6.1',
+        'hypothesis>=1.5.0',
     ],
     cmdclass={'test': PyTest},
 )

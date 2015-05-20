@@ -212,7 +212,10 @@ class TimeStamp(namedtuple('TimeStamp', ['time', 'loc', 'ctr'])):
         loc = (i >> 16) & 0xffff
         if loc >= 0x8000:
             loc -= 0x10000
-        return cls((i >> 32) & 0xffffffff, loc, i & 0xffff)
+        t = (i >> 32) & 0xffffffff
+        if t >= 0x80000000:
+            t -= 0x100000000
+        return cls(t, loc, i & 0xffff)
 
     @property
     def next(self):

@@ -1,6 +1,8 @@
 import itertools
 
 import pytest
+import hypothesis.strategies as hs
+from hypothesis import given
 
 
 def test_add_span(db, fake_time):
@@ -103,13 +105,12 @@ def test_timestamp_next(params):
     assert stamp.next.loc == stamp.loc
 
 
-@pytest.mark.parametrize(
-    'params', itertools.product([12345, 2**31-2],
-                                [22222, 0, -1, 32767, -32768],
-                                [0, 1, 32800, 65535]))
-def test_timestamp_int(params):
+@given(time=hs.integers(-2**31, 2**31-1),
+       loc=hs.integers(-2**15, 2**15-1),
+       ctr=hs.integers(0, 2**16-1))
+def test_timestamp_int(**kwargs):
     from alho.db import TimeStamp
-    stamp = TimeStamp(*params)
+    stamp = TimeStamp(**kwargs)
     assert TimeStamp.from_int(stamp.as_int) == stamp
 
 
