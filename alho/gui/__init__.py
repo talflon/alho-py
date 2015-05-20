@@ -83,6 +83,8 @@ class SpanStartEntry(SavableEntry):
         self.span = span
 
     def normalize(self, value):
+        if not value:
+            return ''
         return time_int_to_str(time_str_to_int(value))
 
     def save(self):
@@ -211,11 +213,15 @@ class SpanListWidget:
 
     def on_save_button(self, *args):
         something_invalid = False
-        for entry in self.all_span_entries():
-            if entry.proposed_valid:
-                entry.save()
+        for span in self.spans[:]:
+            if not span.start_entry.proposed_value:
+                self.db.delete_span(span.span_id)
             else:
-                something_invalid = True
+                for entry in (span.start_entry, span.tag_entry):
+                    if entry.proposed_valid:
+                        entry.save()
+                    else:
+                        something_invalid = True
         self.editing = something_invalid
         self.refresh()
 

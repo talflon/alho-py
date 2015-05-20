@@ -52,14 +52,16 @@ def create_span_edit(loc, span_id, t):
 
 
 def create_span_list_with_spans(mock_db, win, num_spans):
-    span_list = create_span_list(mock_db, win)
-    db = span_list.db
-    for span_id in range(1, num_spans + 1):
-        span_edit = create_span_edit(db.location, span_id, 10000 + span_id)
-        db.add_span.return_value = span_edit
-        db.get_span.return_value = span_edit
-        db.get_tags.return_value = {}
-        span_list.add_span()
+    db = mock_db
+    span_list = create_span_list(db, win)
+    spans = [create_span_edit(db.location, span_id, 10000 + span_id)
+             for span_id in range(1, num_spans + 1)]
+    def get_span(span_id):
+        return [edit for edit in spans if edit.span_id == span_id][0]
+    db.get_span = get_span
+    db.get_spans.return_value = spans
+    db.get_tags.return_value = {}
+    span_list.refresh()
     return span_list
 
 
@@ -122,6 +124,7 @@ class TestSpanListWidget:
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
         db.get_tags.return_value = []
+        db.get_spans.return_value += [span_edit]
 
         old_call_count = db.add_span.call_count
         span_list.switch_button.invoke()
@@ -140,6 +143,7 @@ class TestSpanListWidget:
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
         db.get_tags.return_value = tags.copy()
+        db.get_spans.return_value += [span_edit]
         assert span_list.switch_tags.editable
         span_list.switch_tags.edited_value = tag_set_to_str(tags)
         span_list.switch_button.invoke()
@@ -154,6 +158,7 @@ class TestSpanListWidget:
         span_edit = create_span_edit(db.location, 1, 10000)
         db.add_span.return_value = span_edit
         db.get_span.return_value = span_edit
+        db.get_spans.return_value += [span_edit]
         db.get_tags.return_value = {}
         span_list.editing = False
         span_list.switch_button.invoke()
@@ -299,6 +304,17 @@ class TestSpanListWidget:
         span_list.date_chooser.day = day
         span_list.refresh()
         db.get_spans.assert_called_with(day_start, day_end)
+
+    def test_delete_span(self, span_list_with_spans, fake_time):
+        span_list = span_list_with_spans
+        index = 1
+        span = span_list.spans[index]
+        span_list.editing = True
+        span.start_entry.edited_value = ''
+        assert 'alternate' in span.start_entry.entry.state()
+        assert 'invalid' not in span.start_entry.entry.state()
+        span_list.save_button.invoke()
+        span_list.db.delete_span.assert_called_with(span.span_id)
 
 
 TIME_FMT = '%Y-%m-%d %H:%M:%S'
