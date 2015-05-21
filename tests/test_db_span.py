@@ -1,3 +1,4 @@
+import hypothesis
 import hypothesis.strategies as hs
 from hypothesis import given
 
@@ -93,31 +94,47 @@ def test_get_spans_edited(db, fake_times):
     assert list(db.get_spans(0, 8)) == [s2, s1, s3]
 
 
+def and_especially(rest, *especially):
+    return hs.sampled_from(especially) | rest
+
+
+def ints_in_range(low, high):
+    especially = {low, high} | {i for i in (0, -1, 1, low + 1, high - 1)
+                                if low <= i <= high}
+    return hs.one_of(*(hs.just(i) for i in especially)) | hs.integers(low, high)
+
+
+def ints_bits_signed(nbits):
+    return ints_in_range(-2**(nbits-1), 2**(nbits-1)-1)
+
+
+def ints_bits_unsigned(nbits):
+    return ints_in_range(0, 2**nbits-1)
+
+
 def timestamps():
     return hs.builds(TimeStamp,
-                     time=hs.integers(-2**31, 2**31-1),
-                     loc=hs.integers(-2**15, 2**15-1),
-                     ctr=hs.integers(0, 2**16-1))
+                     time=ints_bits_signed(32),
+                     loc=ints_bits_signed(16),
+                     ctr=ints_bits_unsigned(16))
 
 
-@given(timestamps())
-def test_timestamp_next_greater(stamp):
-    assert stamp.next > stamp
+with hypothesis.Settings(max_examples=500):
+    @given(timestamps())
+    def test_timestamp_next_greater(stamp):
+        assert stamp.next > stamp
 
+    @given(timestamps())
+    def test_timestamp_next_same_loc(stamp):
+        assert stamp.next.loc == stamp.loc
 
-@given(timestamps())
-def test_timestamp_next_same_loc(stamp):
-    assert stamp.next.loc == stamp.loc
+    @given(timestamps())
+    def test_timestamp_int(stamp):
+        assert TimeStamp.from_int(stamp.as_int) == stamp
 
-
-@given(timestamps())
-def test_timestamp_int(stamp):
-    assert TimeStamp.from_int(stamp.as_int) == stamp
-
-
-@given(timestamps())
-def test_timestamp_int_64_bit_signed(stamp):
-    assert -2 ** 63 <= stamp.as_int < 2 ** 63
+    @given(timestamps())
+    def test_timestamp_int_64_bit_signed(stamp):
+        assert -2 ** 63 <= stamp.as_int < 2 ** 63
 
 
 def test_get_last_span(db, fake_times):
