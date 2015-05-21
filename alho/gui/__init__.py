@@ -250,6 +250,7 @@ class SpanListWidget:
         span.widget.pack()
         change_state(self.edit_button, disabled=self.editing)
         span.start_entry.editable = span.tag_entry.editable = self.editing
+        self.refresh()
         return span
 
     def refresh(self):
