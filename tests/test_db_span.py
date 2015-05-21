@@ -1,29 +1,100 @@
+import time
+from unittest.mock import patch
+
 import hypothesis
 import hypothesis.strategies as hs
+import hypothesis.stateful
 from hypothesis import given
 
 from alho.db import TimeStamp
 
 
-def test_add_span(db, fake_time):
-    now = int(fake_time.value)
-    edit = db.add_span()
-    assert edit.started == now
-    assert edit.edited.time == now
-    assert edit.edited.loc == db.location_id
-    assert edit.span_id is not None
-    assert edit.edited.ctr is not None
+def create_db(location):
+    import sqlite3
+    from alho.db import Database, create_tables
+    conn = sqlite3.connect(':memory:')
+    create_tables(conn)
+    return Database(conn, location)
 
 
-def test_delete_span(db, fake_times):
-    edit0 = db.add_span()
-    now = int(fake_times.value)
-    edit1 = db.delete_span(edit0.span_id)
-    assert edit1.started is None
-    assert edit1.edited.time == now
-    assert edit1.edited.loc == db.location_id
-    assert edit1.span_id == edit0.span_id
-    assert edit1.edited != edit0.edited
+class DbStateMachine(hypothesis.stateful.GenericStateMachine):
+
+    def __init__(self):
+        self.span_ids = set()
+        self.db = create_db(12345)
+        self.now = 123456789.12394
+
+    def step_strategy(self, action, *args_strategies):
+        return hs.tuples(hs.just(action),
+                         hs.tuples(*args_strategies),
+                         hs.just(0.0) | hs.floats(0.0, 60.0))
+
+    def steps(self):
+        strat = self.step_strategy('add_span')
+        if self.span_ids:
+            strat |= self.step_strategy('delete_span',
+                                        hs.sampled_from(self.span_ids))
+            strat |= self.step_strategy('set_span',
+                                        hs.sampled_from(self.span_ids),
+                                        hs.integers(-10, 100))
+        return strat
+
+    def execute_step(self, step):
+        action, args, time_step = step
+        self.now += time_step
+        with patch.object(time, 'time', lambda: self.now):
+            getattr(self, 'do_' + action)(*args)
+
+    def do_add_span(self):
+        span_edit = self.db.add_span()
+        assert span_edit.span_id not in self.span_ids
+        assert span_edit.started == int(self.now)
+        self.span_ids.add(span_edit.span_id)
+        self.check_current_span_edit(span_edit)
+
+    def do_set_span(self, span_id, started):
+        span_edit = self.db.set_span(span_id, started)
+        assert span_edit.span_id == span_id
+        assert span_edit.started == started
+        self.span_ids.add(span_id)
+        self.check_current_span_edit(span_edit)
+
+    def do_delete_span(self, span_id):
+        span_edit = self.db.delete_span(span_id)
+        assert span_edit.span_id == span_id
+        assert span_edit.started is None
+        self.span_ids.discard(span_id)
+        self.check_current_span_edit(span_edit)
+
+    def check_current_span_edit(self, span_edit):
+        assert span_edit.edited.time == int(self.now)
+        assert span_edit.edited.loc == self.db.location_id
+        assert self.db.get_span(span_edit.span_id) == span_edit
+
+        get_spans_result = list(self.db.get_spans(-2**31, 2**31-1))
+        if span_edit.started is not None:
+            assert span_edit in get_spans_result
+        assert get_spans_result == sorted(get_spans_result,
+                                          key=lambda edit: edit.started)
+        span_ids = [edit.span_id for edit in get_spans_result]
+        if span_edit.started is None:
+            assert span_edit.span_id not in span_ids
+        assert sorted(span_ids) == sorted(set(span_ids))
+        edited_timestamps = [edit.edited for edit in get_spans_result]
+        assert sorted(edited_timestamps) == sorted(set(edited_timestamps))
+
+        history_result = list(self.db.get_span_history(span_edit.span_id))
+        assert history_result[-1] == span_edit
+        assert history_result == sorted(history_result,
+                                        key=lambda edit: edit.edited.time)
+        edited_timestamps = [edit.edited for edit in history_result]
+        assert sorted(edited_timestamps) == sorted(set(edited_timestamps))
+        for edit in history_result:
+            assert edit.span_id == span_edit.span_id
+
+
+def test_db_ops():
+    hypothesis.stateful.run_state_machine_as_test(DbStateMachine)
 
 
 def test_add_delete_span_history(db, fake_times):
@@ -36,17 +107,6 @@ def test_add_delete_span_history(db, fake_times):
 def test_get_span_history_unknown(db, fake_time):
     span_id = db.add_span().span_id
     assert list(db.get_span_history(span_id + 3)) == []
-
-
-def test_get_span(db, fake_time):
-    edit = db.add_span()
-    assert db.get_span(edit.span_id) == edit
-
-
-def test_get_span_deleted(db, fake_times):
-    edit = db.add_span()
-    deletion = db.delete_span(edit.span_id)
-    assert db.get_span(edit.span_id) == deletion
 
 
 def test_get_span_unknown(db, fake_time):
