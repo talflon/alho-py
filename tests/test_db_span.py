@@ -71,7 +71,7 @@ class DbStateMachine(hypothesis.stateful.GenericStateMachine):
         assert span_edit.edited.loc == self.db.location_id
         assert self.db.get_span(span_edit.span_id) == span_edit
 
-        get_spans_result = list(self.db.get_spans(-2**31, 2**31-1))
+        get_spans_result = list(self.db.get_spans())
         if span_edit.started is not None:
             assert span_edit in get_spans_result
         assert get_spans_result == sorted(get_spans_result,

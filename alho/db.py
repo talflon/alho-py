@@ -136,7 +136,7 @@ class Database:
             """.format(SpanEdit.COLUMNS), edit.as_row)
         return edit
 
-    def get_spans(self, time_from, time_to):
+    def get_spans(self, time_from=-2**31, time_to=2**31-1):
         for row in self.conn.execute("""
           select {}
             from current_span
@@ -188,7 +188,7 @@ class Database:
         """, [span_id])
         return set(row[0] for row in cursor)
 
-    def get_tag_history(self, span_id, time_from=0, time_to=(2**31) - 1):
+    def get_tag_history(self, span_id, time_from=-2**31, time_to=2**31-1):
         for row in self.conn.execute("""
           select {}
             from span_tag
