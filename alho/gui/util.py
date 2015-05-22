@@ -61,8 +61,12 @@ class SavableEntry:
         self.edited_var.set(value)
         if style is None:
             style = self.STYLE_NAME
-        self.widget = self.entry = Entry(master, textvariable=self.edited_var,
-                                         style=style)
+        self.widget = self.entry = Entry(
+            master,
+            textvariable=self.edited_var,
+            style=style,
+            validate='focus',
+            validatecommand=lambda *args: self.proposed_valid)
         self._external_value = value
         self.editable = editable
         self.edited_var.trace('w', self.on_edited_change)
