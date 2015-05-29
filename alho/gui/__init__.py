@@ -141,7 +141,7 @@ class SwitchTagEntry(SavableEntry):
         return tag_set_to_str(tag_str_to_set(value))
 
     def on_key_return(self, *args):
-        if self.proposed_valid:
+        if self.proposed_value:
             self.save()
 
     def on_key_escape(self, *args):
