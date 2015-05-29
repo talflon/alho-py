@@ -19,6 +19,8 @@ def create_db(location):
 
 class DbStateMachine(hypothesis.stateful.GenericStateMachine):
 
+    TAG_NAMES = ['x', 'yz', 'abc', 'blah']
+
     def __init__(self):
         self.span_ids = set()
         self.db = create_db(12345)
@@ -37,6 +39,10 @@ class DbStateMachine(hypothesis.stateful.GenericStateMachine):
             strat |= self.step_strategy('set_span',
                                         hs.sampled_from(self.span_ids),
                                         hs.integers(-10, 100))
+            strat |= self.step_strategy('set_tag',
+                                        hs.sampled_from(self.span_ids),
+                                        hs.sampled_from(self.TAG_NAMES),
+                                        hs.booleans())
         return strat
 
     def execute_step(self, step):
@@ -66,9 +72,22 @@ class DbStateMachine(hypothesis.stateful.GenericStateMachine):
         self.span_ids.discard(span_id)
         self.check_current_span_edit(span_edit)
 
+    def check_current_edit(self, edit):
+        assert edit.edited.time == int(self.now)
+        assert edit.edited.loc == self.db.location_id
+
+    def check_history_result(self, history_result, edit):
+        history_result = list(history_result)
+        assert history_result[-1] == edit
+        assert history_result == sorted(history_result,
+                                        key=lambda ed: ed.edited.time)
+        edited_timestamps = [ed.edited for ed in history_result]
+        assert sorted(edited_timestamps) == sorted(set(edited_timestamps))
+        for ed in history_result:
+            assert ed.span_id == edit.span_id
+
     def check_current_span_edit(self, span_edit):
-        assert span_edit.edited.time == int(self.now)
-        assert span_edit.edited.loc == self.db.location_id
+        self.check_current_edit(span_edit)
         assert self.db.get_span(span_edit.span_id) == span_edit
 
         get_spans_result = list(self.db.get_spans())
@@ -83,14 +102,24 @@ class DbStateMachine(hypothesis.stateful.GenericStateMachine):
         edited_timestamps = [edit.edited for edit in get_spans_result]
         assert sorted(edited_timestamps) == sorted(set(edited_timestamps))
 
-        history_result = list(self.db.get_span_history(span_edit.span_id))
-        assert history_result[-1] == span_edit
-        assert history_result == sorted(history_result,
-                                        key=lambda edit: edit.edited.time)
-        edited_timestamps = [edit.edited for edit in history_result]
-        assert sorted(edited_timestamps) == sorted(set(edited_timestamps))
-        for edit in history_result:
-            assert edit.span_id == span_edit.span_id
+        self.check_history_result(self.db.get_span_history(span_edit.span_id),
+                                  span_edit)
+
+    def do_set_tag(self, span_id, tag, active):
+        expected_tags = set(self.db.get_tags(span_id))
+        if active:
+            expected_tags.add(tag)
+        else:
+            expected_tags.discard(tag)
+        tag_edit = self.db.set_tag(span_id, tag, active)
+        assert tag_edit.span_id == span_id
+        assert tag_edit.name == tag
+        assert tag_edit.active == active
+        self.check_current_edit(tag_edit)
+
+        assert set(self.db.get_tags(span_id)) == expected_tags
+
+        self.check_history_result(self.db.get_tag_history(span_id), tag_edit)
 
 
 def test_db_ops():
