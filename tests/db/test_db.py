@@ -40,5 +40,6 @@ def test_db_location_saved(location_id):
     from alho.db import Database
     db = create_db()
     db.location_id = location_id
+    db.conn.rollback()
     db2 = Database(db.conn)
     assert db2.location_id == location_id

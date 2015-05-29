@@ -78,11 +78,12 @@ class Database:
 
     @location_id.setter
     def location_id(self, value):
-        if self.location_id is None:
-            self.conn.execute('insert into local_data (loc_id) values (?)',
-                              [value])
-        else:
-            self.conn.execute('update local_data set loc_id = ?', [value])
+        with self.conn:
+            if self.location_id is None:
+                self.conn.execute('insert into local_data (loc_id) values (?)',
+                                  [value])
+            else:
+                self.conn.execute('update local_data set loc_id = ?', [value])
 
     def add_span(self):
         return self.set_span('new', 'now')
