@@ -36,12 +36,13 @@ args = parser.parse_args()
 filename = os.path.normpath(os.path.expanduser(args.file))
 already_existed = os.path.exists(filename)
 conn = sqlite3.connect(filename)
+db = Database(conn)
 if not already_existed:
     create_tables(conn)
+    db.location_id = random.getrandbits(31)
 
 win = tk.Tk()
 SavableEntry.set_theme_defaults(win)
-db = Database(conn, random.getrandbits(31))
 span_list = SpanListWidget(win, db)
 span_list.widget.pack()
 if args.interactive:
