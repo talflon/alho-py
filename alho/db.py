@@ -22,6 +22,11 @@ from collections import namedtuple
 def create_tables(conn):
     with conn:
         conn.execute("""
+          create table local_data (
+            loc_id int not null
+          )
+        """)
+        conn.execute("""
           create table span (
             edit_time integer primary key not null,
             edit_loc int not null,
@@ -61,9 +66,23 @@ def create_tables(conn):
 
 class Database:
 
-    def __init__(self, conn, location_id):
+    def __init__(self, conn, location_id=None):
         self.conn = conn
-        self.location_id = location_id
+        if location_id is not None:
+            self.location_id = location_id
+
+    @property
+    def location_id(self):
+        row = self.conn.execute('select loc_id from local_data').fetchone()
+        return row[0] if row else None
+
+    @location_id.setter
+    def location_id(self, value):
+        if self.location_id is None:
+            self.conn.execute('insert into local_data (loc_id) values (?)',
+                              [value])
+        else:
+            self.conn.execute('update local_data set loc_id = ?', [value])
 
     def add_span(self):
         return self.set_span('new', 'now')
