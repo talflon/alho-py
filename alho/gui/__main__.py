@@ -39,7 +39,7 @@ conn = sqlite3.connect(filename)
 db = Database(conn)
 if not already_existed:
     create_tables(conn)
-    db.location_id = random.getrandbits(31)
+    db.location_id = random.getrandbits(32) - 2**31
 
 win = tk.Tk()
 SavableEntry.set_theme_defaults(win)
