@@ -97,7 +97,7 @@ class SpanStartEntry(SavableEntry):
 
     def refresh(self):
         self.external_value = time_int_to_str(
-            self.span.db.get_span(self.span.span_id).edited.time)
+            self.span.db.get_span(self.span.span_id).started)
 
 
 class SpanWidget:

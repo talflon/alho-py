@@ -48,9 +48,11 @@ def create_span_list(db, win):
     return span_list
 
 
-def create_span_edit(loc, span_id, t):
+def create_span_edit(loc, span_id, now, started=None):
+    if started is None:
+        started = now
     from alho.db import SpanEdit, TimeStamp
-    return SpanEdit(TimeStamp(t, loc, 0), span_id, t)
+    return SpanEdit(TimeStamp(now, loc, 0), span_id, started)
 
 
 def create_span_list_with_spans(mock_db, win, num_spans):
@@ -413,7 +415,7 @@ class TestSpanWidget:
                                                          t=old_t,
                                                          tags=old_tags)
         mock_db.get_span.return_value = create_span_edit(mock_db.location,
-                                                         span_id, new_t)
+                                                         span_id, old_t, new_t)
         mock_db.get_tags.return_value = new_tags.copy()
         span_widget.refresh()
         assert (span_widget.start_entry.external_value ==
