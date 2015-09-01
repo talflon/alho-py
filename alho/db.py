@@ -62,6 +62,18 @@ def create_tables(conn):
                 and newer_span_tag.name = cur_span_tag.name
                 and newer_span_tag.edit_time > cur_span_tag.edit_time)
         """)
+        for table in 'span', 'span_tag':
+            conn.execute("""
+              create index {0}_span_id_idx on {0} (span_id, edit_time)
+            """.format(table))
+            conn.execute("""
+              create index {0}_edit_time_idx on {0} (edit_time)
+            """.format(table))
+            conn.execute("""
+              create index {0}_edit_loc_idx on {0} (edit_loc, edit_time)
+            """.format(table))
+        conn.execute('create index span_started_idx on span (started)')
+        conn.execute('create index span_tag_name_idx on span_tag (name)')
 
 
 class Database:
